@@ -108,20 +108,22 @@ int main(int argc, char *argv[]){
 	char datosRecibidos[1024];
 	socklen_t longitudDireccion = sizeof(serverAddr);
 	int recvResult;
+	//Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
 	recvResult = recvfrom(socketResult, &datosRecibidos, 1024, 0, (struct sockaddr *)&serverAddr, &longitudDireccion);
 	if(recvResult < 0){
 		error("Error al recibir datos del servidor\n");
 		closeSocket(socketResult);
 	}
-	printf("Datos recibidos:%s\n", datosRecibidos);
+	//Imprimimos los recibido por el servidor
+	//Seteamos colores para customizar la salida
+	printf("\033[0;31m");
+	printf("Datos recibidos:\033[1;31m%s\n", datosRecibidos);
 
+	//Cerramos la conexion
 	int closeError = close(socketResult);
 	if(closeError < 0){
 		error("Error al cerrar el socket\n");
 	}
-
-	//if(connect())
-
 
 	exit(EXIT_SUCCESS);
 	
