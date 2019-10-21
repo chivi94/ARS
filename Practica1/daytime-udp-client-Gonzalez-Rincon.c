@@ -39,6 +39,7 @@ int main(int argc, char *argv[]){
 	/*Despues de comprobar la cantidad de argumentos, se comprueba
 	si se ha introducido un puerto del servidor*/
 	int puerto = 0;
+	
 	if(argc >=3){
 		if(strcmp("-p", argv[2])==0){
 			//Cogemos el numero de puerto del usuario
@@ -46,6 +47,10 @@ int main(int argc, char *argv[]){
 			//htons(puerto);		
 
 		}
+	}else{
+		struct servent *defaultPort;
+		defaultPort = getservbyname("daytime", "udp");
+		puerto = defaultPort->s_port;
 	}
 	//Comprobadas las opciones, pasamos a convertir la IP
 	int value;
@@ -89,14 +94,18 @@ int main(int argc, char *argv[]){
 	char datos [] = "Dame el dia actual";
 	struct sockaddr_in serverAddr;
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = 0 ;
+	serverAddr.sin_port = puerto ;
 	serverAddr.sin_addr = address;
 
+	//Enviamos los datos y comprobamos si da fallo. En caso afirmativo, el programa termina.
 	sendResult = sendto(socketResult, datos, sizeof(datos), 0, (struct sockaddr *)&serverAddr,sizeof(serverAddr));
 	if(sendResult < 0){
 		error("Error al enviar datos al servidor\n");
 		closeSocket(sendResult);
 	}
+
+	//Recibimos datos del servidor
+
 	//if(connect())
 
 
