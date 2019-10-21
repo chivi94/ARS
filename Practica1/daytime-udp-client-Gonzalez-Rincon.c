@@ -7,6 +7,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+void error(char * message){
+	perror(message);
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[]){
 	printf("Numero de argumentos: %i\n",argc);
 	printf("Direccion:%s\n",argv[1]);
@@ -39,6 +48,36 @@ int main(int argc, char *argv[]){
 	}
 	//Aqui cogemos los argumentos introducidos por el usuario
 	printf("Direccion IP:%x\n",address.s_addr);
+
+	//Declaramos el socket
+	int socketResult;
+
+	//Si la funcion de creacionn del Socket devuelve algo menor a 0, quiere decir que ha fallado.
+	if((socketResult = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+		error("Error al crear el socket\n");
+	}
+	// En caso de crear correctamente el socket, se informa.
+	printf("El socket se ha creado correctamente\n");
+
+	//Ahora vamos a enlazar el socket
+	int bindingResult, closeResult;
+	struct sockaddr_in myaddr;
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_port = 0;
+	myaddr.sin_addr.s_addr = INADDR_ANY;
+
+	if((bindingResult = bind(socketResult, (struct sockaddr *) &myaddr, sizeof(myaddr))) < 0){
+		error("Error al enlazar el socket\n");
+		closeResult = close(socketResult);
+		if(closeResult <0){
+			error("Error al cerrar el socket\n");
+		}
+		exit(EXIT_FAILURE);
+	}
+	printf("El socket se ha enlazado correctamente\n");
+	
+	//if(connect())
+
 
 	exit(EXIT_SUCCESS);
 	
