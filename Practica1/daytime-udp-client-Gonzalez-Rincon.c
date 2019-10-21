@@ -101,10 +101,24 @@ int main(int argc, char *argv[]){
 	sendResult = sendto(socketResult, datos, sizeof(datos), 0, (struct sockaddr *)&serverAddr,sizeof(serverAddr));
 	if(sendResult < 0){
 		error("Error al enviar datos al servidor\n");
-		closeSocket(sendResult);
+		closeSocket(socketResult);
 	}
 
 	//Recibimos datos del servidor
+	char datosRecibidos[1024];
+	socklen_t longitudDireccion = sizeof(serverAddr);
+	int recvResult;
+	recvResult = recvfrom(socketResult, &datosRecibidos, 1024, 0, (struct sockaddr *)&serverAddr, &longitudDireccion);
+	if(recvResult < 0){
+		error("Error al recibir datos del servidor\n");
+		closeSocket(socketResult);
+	}
+	printf("Datos recibidos:%s\n", datosRecibidos);
+
+	int closeError = close(socketResult);
+	if(closeError < 0){
+		error("Error al cerrar el socket\n");
+	}
 
 	//if(connect())
 
