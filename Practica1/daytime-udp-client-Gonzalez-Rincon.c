@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void error(char * message){
+void error(char *message[]){
 	perror(message);
 	exit(EXIT_FAILURE);
 }
