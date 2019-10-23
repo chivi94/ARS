@@ -77,16 +77,17 @@ int main(int argc, char *argv[]){
 	}
 	printf("El socket se ha enlazado correctamente\n");
 
-	//Despues de enlazar el socket, comenzamos el bucle a la espera de conexiones.
+	//En este apartado declaran las variables necesarias para poder mandar al cliente la informacion solicitada.
 	char bufferOut[SIZEBUFF];
 	FILE *fich;
 	struct sockaddr_in address;
 	socklen_t addressLength = sizeof(address);
 	int rcvResult;
 	int sndResult;
+	//Despues de enlazar el socket, comenzamos el bucle a la espera de conexiones.
 	while(1){
 		char bufferIn[SIZEBUFF];
-		char hostName[HOSTNAME];
+		//Recibimos los datos del cliente
 		rcvResult = recvfrom(socketResult, &bufferIn, 1024, 0, (struct sockaddr *)&address, &addressLength);
 		if(rcvResult < 0){
 			error("Error al recibir datos del cliente\n");
@@ -94,19 +95,25 @@ int main(int argc, char *argv[]){
 		}
 		//Mostramos los datos recibidos por parte del cliente
 		printf("El cliente dice:%s\n",bufferIn);
+
+		char hostName[HOSTNAME];
 		//Mandamos los datos al cliente
 		system("date > /tmp/tt.txt");
+		//Obtenemos el nombre del servidor
 		gethostname(hostName, sizeof(hostName));
 		strcat(hostName,": ");
 		fich = fopen("/tmp/tt.txt","r");
+		//Reservamos memoria para poder concatenar la informacion del nombre del servidor y la fecha
 		char *result = malloc(HOSTNAME + strlen(bufferIn) + 1);
 		strcpy(result,hostName);
 		if(fgets(bufferOut, sizeof(bufferOut), fich)== NULL){
 			error("Error al abrir el fichero\n");
 			closeSocket(socketResult);
 		}
+		//Concatenamos toda la informacion
 		strcat(result,bufferOut);
 		printf("La fecha y las hora son: %s\n",result);
+		//Mandamos la informacion al cliente
 		sndResult = sendto(socketResult, result, 1024, 0, (struct sockaddr *)&address, sizeof(address));
 		if(sndResult < 0){
 			error("Error al mandar datos al cliente\n");
