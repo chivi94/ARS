@@ -11,7 +11,23 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define SIZEBUFF 30
+
+#define SIZEBUFF 128
+#define HOSTNAME 256
+
+void error(char message[]){
+	perror(message);
+	exit(EXIT_FAILURE);
+}
+
+void closeSocket(int result){
+//Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
+	int closeResult = close(result);
+	if(closeResult <0){
+		error("Error al cerrar el socket\n");
+	}
+	exit(EXIT_FAILURE);
+}
 
 int main(int argc, char *argv[]){
 	if(argc>3){
@@ -60,6 +76,44 @@ int main(int argc, char *argv[]){
 		closeSocket(socketResult);
 	}
 	printf("El socket se ha enlazado correctamente\n");
+
+	//Despues de enlazar el socket, comenzamos el bucle a la espera de conexiones.
+	char bufferOut[SIZEBUFF];
+	FILE *fich;
+	struct sockaddr_in address;
+	socklen_t addressLength = sizeof(address);
+	int rcvResult;
+	int sndResult;
+	while(1){
+		char bufferIn[SIZEBUFF];
+		char hostName[HOSTNAME];
+		rcvResult = recvfrom(socketResult, &bufferIn, 1024, 0, (struct sockaddr *)&address, &addressLength);
+		if(rcvResult < 0){
+			error("Error al recibir datos del cliente\n");
+			closeSocket(socketResult);
+		}
+		//Mostramos los datos recibidos por parte del cliente
+		printf("El cliente dice:%s\n",bufferIn);
+		//Mandamos los datos al cliente
+		system("date > /tmp/tt.txt");
+		gethostname(hostName, sizeof(hostName));
+		strcat(hostName,": ");
+		fich = fopen("/tmp/tt.txt","r");
+		char *result = malloc(HOSTNAME + strlen(bufferIn) + 1);
+		strcpy(result,hostName);
+		if(fgets(bufferOut, sizeof(bufferOut), fich)== NULL){
+			error("Error al abrir el fichero\n");
+			closeSocket(socketResult);
+		}
+		strcat(result,bufferOut);
+		printf("La fecha y las hora son: %s\n",result);
+		sndResult = sendto(socketResult, result, 1024, 0, (struct sockaddr *)&address, sizeof(address));
+		if(sndResult < 0){
+			error("Error al mandar datos al cliente\n");
+			closeSocket(socketResult);
+		}
+	}
+	closeSocket(socketResult);
 
     exit(EXIT_SUCCESS);
 }

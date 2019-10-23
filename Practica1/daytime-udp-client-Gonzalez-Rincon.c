@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void error(char *message[]){
+void error(char message[]){
 	perror(message);
 	exit(EXIT_FAILURE);
 }
@@ -116,8 +116,7 @@ int main(int argc, char *argv[]){
 	}
 	//Imprimimos los recibido por el servidor
 	//Seteamos colores para customizar la salida
-	printf("\033[0;31m");
-	printf("Datos recibidos:\033[1;31m%s\n", datosRecibidos);
+	printf("Datos recibidos:%s\n", datosRecibidos);
 
 	//Cerramos la conexion
 	int closeError = close(socketResult);
