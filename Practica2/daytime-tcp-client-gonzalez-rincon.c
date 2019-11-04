@@ -32,9 +32,13 @@ void closeSocket(int result)
 
 int main(int argc, char *argv[])
 {
+    //Creamos unas constantes, para comprobar si el usuario mete localhost como IP, poder interpretarla.
     const char *LOCALHOST = "localhost";
     const char *LOCALHOSTIP = "0.0.0.0";
 
+    /*
+    1. Encontrar la direccion IP y el nnumero de puerto de protocolo del servidor con el que se desea comunicar.
+    */
     printf("Numero de argumentos: %i\n", argc);
     printf("Direccion:%s\n", argv[1]);
     if (argc < 2)
@@ -47,6 +51,7 @@ int main(int argc, char *argv[])
     }
     /*Despues de comprobar la cantidad de argumentos, se comprueba
 	si se ha introducido un puerto del servidor*/
+    //PUERTO: Variable para almacenar el puerto introducido como argumento
     int puerto = 0;
 
     if (argc >= 3)
@@ -59,6 +64,7 @@ int main(int argc, char *argv[])
     }
     else
     {
+        //PUERTO: Estructura para almacenar el numero del puerto.
         struct servent *defaultPort;
         defaultPort = getservbyname("daytime", "tcp");
         //Comprobamos que el puerto elegido no sea NULL
@@ -69,26 +75,36 @@ int main(int argc, char *argv[])
         puerto = defaultPort->s_port;
     }
     //Comprobadas las opciones, pasamos a convertir la IP
-    int portValue;
+    //IP: Estructura para almacenar la ip.
     struct in_addr address;
+    int ipError;
     //Comprobamos si el usuario al invocado al cliente con localhost
-    if (argv[1] == LOCALHOST)
+    if (strcmp(argv[1],LOCALHOST) == 0)
     {
         //En ese caso, le asignamos la IP correspondiente a localhost.
-        portValue = inet_aton(LOCALHOSTIP, &address);
+        printf("Localhost.\n");
+        ipError = inet_aton(LOCALHOSTIP, &address);
     }
-    portValue = inet_aton(argv[1], &address);
-    if (portValue <= 0)
+    //Si no, le asignamos la IP que ha introducido
+    else
+    {
+        ipError = inet_aton(argv[1], &address);
+    }
+
+    //Comprobamos si hay error en la conversion de la IP
+    if (ipError <= 0)
     {
         error("Conversion IP mal realizada.\n");
     }
     //Aqui cogemos los argumentos introducidos por el usuario
     printf("Direccion IP:%x\n", address.s_addr);
-
-    //Declaramos el socket
+    /*
+    2.Creamos el socket (punto de comunicacion entre el servidor y el cliente)
+    */
+    //SOCKET: Declaramos el socket. Variable donde manejaremos el mismo.
     int socketResult;
 
-    //Si la funcion de creacionn del Socket devuelve algo menor a 0, quiere decir que ha fallado.
+    //Si la funcion de creacion del Socket devuelve algo menor a 0, quiere decir que ha fallado.
     if ((socketResult = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         error("Error al crear el socket\n");
@@ -96,60 +112,24 @@ int main(int argc, char *argv[])
     // En caso de crear correctamente el socket, se informa.
     printf("El socket se ha creado correctamente\n");
 
-    //Ahora vamos a conectar el socket
-    int connectionResult;
-    struct sockaddr_in myaddr;
-    myaddr.sin_family = AF_INET;
-    myaddr.sin_port = portValue;
-    myaddr.sin_addr = address;
+    /*
+    3. Enlazamos el socket a una IP y puerto locales.
+    */
+    int connectResult;
 
-    //Comprobamos si surge algun error al enlazar el socket a la direccion local
-    if ((connectionResult = connect(socketResult, (struct sockaddr *)&myaddr, sizeof(myaddr))) < 0)
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = puerto;
+    server_addr.sin_addr = address;
+
+    //Comprobamos si surgen errores al conectar.
+    printf("Comprobamos la conexion.\n");
+    if ((connectResult = connect(socketResult, (struct sockaddr *)&server_addr, sizeof(server_addr))) < 0)
     {
-        //De haberlo, se notifica, e intentamos cerrar el Socket
-        error("Error al enlazar el socket\n");
-        //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
+        error("Error al conectar con el servidor.\n");
         closeSocket(socketResult);
     }
-    printf("El socket se ha enlazado correctamente\n");
+    printf("Se ha conectado correctamente con el servidor.\n");
 
-    //Recibimos datos del servidor
-    char datosRecibidos[1024] = "";
-    //socklen_t longitudDireccion = sizeof(serverAddr);
-    int recvResult;
-    //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
-    recvResult = recv(socketResult, &datosRecibidos, 1024, 0);
-    if (recvResult < 0)
-    {
-        error("Error al recibir datos del servidor\n");
-        closeSocket(socketResult);
-    }
-    //Imprimimos los datos recibidos por el servidor
-    printf("Datos recibidos:%s\n", datosRecibidos);
-
-    //Cerramos la conexion
-    int closeError = close(socketResult);
-    if (closeError < 0)
-    {
-        error("Error al cerrar el socket\n");
-    }
-
-    // Cerramos la conexión establecida con el servidor
-    int shutdownError = shutdown(socketResult, SHUT_RDWR);
-    if (shutdownError < 0)
-    {
-        error("Fallo al cerrar la conexion.\n");
-    }
-
-    //Realizamos otro recv para comprobar que el cliente tiene todos los datos enviados por el servidor.
-    recvResult = recv(socketResult, &datosRecibidos, 0, 0);
-    if (recvResult < 0)
-    {
-        error("Error al recibir datos.\n");
-        closeSocket(socketResult);
-    }
-
-    //Cerramos el socket.
-    closeSocket(socketResult);
     exit(EXIT_SUCCESS);
 }
