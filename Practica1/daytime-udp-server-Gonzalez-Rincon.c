@@ -15,6 +15,7 @@
 #define SIZEBUFF 128
 #define HOSTNAME 256
 
+//Metodo para imprimir un mensaje de error y terminar el programa
 void error(char message[]){
 	perror(message);
 	exit(EXIT_FAILURE);

@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+//Metodo para imprimir un mensaje de error y terminar el programa
 void error(char message[]){
 	perror(message);
 	exit(EXIT_FAILURE);
