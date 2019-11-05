@@ -11,6 +11,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define BUFFERSIZE 512
+
 //Metodo para imprimir un mensaje de error y terminar el programa.
 void error(char message[])
 {
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
     struct in_addr address;
     int ipError;
     //Comprobamos si el usuario al invocado al cliente con localhost
-    if (strcmp(argv[1],LOCALHOST) == 0)
+    if (strcmp(argv[1], LOCALHOST) == 0)
     {
         //En ese caso, le asignamos la IP correspondiente a localhost.
         printf("Localhost.\n");
@@ -114,6 +116,7 @@ int main(int argc, char *argv[])
 
     /*
     3. Enlazamos el socket a una IP y puerto locales.
+    4. Conectar el socket con el servidor (proporcionando tanto la IP como el puerto).
     */
     int connectResult;
 
@@ -130,6 +133,41 @@ int main(int argc, char *argv[])
         closeSocket(socketResult);
     }
     printf("Se ha conectado correctamente con el servidor.\n");
+
+    /*
+    5. Recibir datos de acuerdo con el protocolo del nivel de aplicacion.
+    */
+    char datosRecibidos[BUFFERSIZE] = "";
+    int recvError = 0;
+
+    //Comprobamos si surge algun problema al recibir datos del servidor.
+    if ((recvError = recv(socketResult, &datosRecibidos, BUFFERSIZE, 0) < 0))
+    {
+        error("Fallo al recibir datos del servidor.\n");
+        closeSocket(socketResult);
+    }
+    //Si todo ha ido bien, mostramos los datos que el servidor envia al cliente.
+    printf("Datos recibidos:\n%s\n", datosRecibidos);
+
+    /*
+    6. Para finalizar con la comunicacion, cerramos la conexion con el servidor.
+    */
+   int closeError = 0;
+
+   if((closeError = shutdown(socketResult, SHUT_RDWR)) < 0){
+       error("Ha surgido un error al cerrar la conexion del cliente.\n");
+       closeSocket(socketResult);
+   }
+
+   //Comprobamos que el cliente ha recibido todos los datos que ha mandado el servidor
+   if ((recvError = recv(socketResult, &datosRecibidos, 0, 0) < 0))
+    {
+        error("Fallo al recibir datos del servidor.\n");
+        closeSocket(socketResult);
+    }
+
+    //Por ultimom cerramos la conexion
+    closeSocket(socketResult);
 
     exit(EXIT_SUCCESS);
 }
