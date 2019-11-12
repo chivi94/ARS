@@ -8,10 +8,25 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+
 #define BUFFERSIZE 512
+
+void signal_handler(int signal, int socketResult)
+{
+    if (signal == SIGINT)
+    {
+        if (close(socketResult) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_SUCCESS);
+    }
+}
 
 //Metodo para imprimir un mensaje de error y terminar el programa.
 void error(char message[])
@@ -30,6 +45,37 @@ void closeSocket(int result)
         error("Error al cerrar el socket\n");
     }
     exit(EXIT_FAILURE);
+}
+
+void childFunction(struct sockaddr_in client_addr, int socketResult)
+{
+    char bufferOut[BUFFERSIZE];
+    char hostName[BUFFERSIZE];
+    //Mandamos los datos al cliente
+    system("date > /tmp/tt.txt");
+    //Obtenemos el nombre del servidor
+    gethostname(hostName, sizeof(hostName));
+    strcat(hostName, ": ");
+    FILE *fich = fopen("/tmp/tt.txt", "r");
+    //Reservamos memoria para poder concatenar la informacion del nombre del servidor y la fecha
+    char *result = malloc((BUFFERSIZE * 2) + 1);
+    strcpy(result, hostName);
+    if (fgets(bufferOut, sizeof(bufferOut), fich) == NULL)
+    {
+        error("Error al abrir el fichero\n");
+        closeSocket(socketResult);
+    }
+    //Concatenamos toda la informacion
+    strcat(result, bufferOut);
+    printf("La fecha y las hora son: %s\n", result);
+    //Mandamos la informacion al cliente
+
+    if (send(socketResult, result, sizeof(result), 0) < 0)
+    {
+        error("Error al mandar datos al cliente\n");
+        closeSocket(socketResult);
+    }
+    closeSocket(socketResult);
 }
 
 int main(int argc, char *argv[])
@@ -78,6 +124,11 @@ int main(int argc, char *argv[])
     // En caso de crear correctamente el socket, se informa.
     printf("El socket se ha creado correctamente\n");
 
+    //Comprobamos el registro de senial Ctrl + C
+    /*if (signal(SIGINT, &signal_handler) == SIG_ERR)
+    {
+        perror("Error en señal.\n");
+    }*/
     /*
     2. Enlazamos a una direccion local bien conocida del servicio que ofrece el servidor.
    */
@@ -108,19 +159,33 @@ int main(int argc, char *argv[])
    */
     struct sockaddr_in client_addr;
     int entrySocket;
-
-    while(1){
-        if((entrySocket = accept(socketResult, (struct sockaddr * )&client_addr, sizeof(client_addr))) < 0){
+    int childId;
+    socklen_t clientLength = sizeof(client_addr);
+    while (1)
+    {
+        if ((entrySocket = accept(socketResult, (struct sockaddr *)&client_addr, &clientLength)) < 0)
+        {
             error("Socket no aceptado. \n");
             closeSocket(socketResult);
         }
-    }
 
-    /*
+        /*
   5. Crear una copia del proceso(hijo) para que atienda al cliente.
   */
-
-    /*
- 6. Proceso padre vuelve al paso 4.
- */
+        //Comprobamos si el fork se hace correctamente
+        //Si falla, informamos
+        if ((childId = fork()) < 0)
+        {
+            error("Error al hacer fork.\n");
+            closeSocket(socketResult);
+        }
+        //Si el resultado de la funcion es 0, todo ha salido correctamente.
+        if (childId == 0)
+        {
+            socketResult = entrySocket;
+            childFunction(client_addr, socketResult);
+            exit(EXIT_SUCCESS);
+        }
+    }
+    exit(EXIT_SUCCESS);
 }
