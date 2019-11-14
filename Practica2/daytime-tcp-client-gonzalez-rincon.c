@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     /*
     5. Recibir datos de acuerdo con el protocolo del nivel de aplicacion.
     */
-    char datosRecibidos[BUFFERSIZE] = "";
+    char datosRecibidos[BUFFERSIZE * 2] = "";
     int recvError = 0;
 
     //Comprobamos si surge algun problema al recibir datos del servidor.

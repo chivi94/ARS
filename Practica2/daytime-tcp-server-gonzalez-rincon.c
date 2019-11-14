@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
 #define BUFFERSIZE 512
 
 void signal_handler(int signal, int socketResult)
