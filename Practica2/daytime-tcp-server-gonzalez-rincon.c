@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     }
 
     /*
-    1. Creamos un socket
+    1. Crear un socket.
     */
 
     //Si la funcion de creacionn del Socket devuelve algo menor a 0, quiere decir que ha fallado.
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
         perror("Error al parar el servidor.\n");
     }
     /*
-    2. Enlazamos a una direccion local bien conocida del servicio que ofrece el servidor.
+    2. Enlazarlo a una direccion local bien conocida del servicio que se ofrece.
    */
     int bindingResult;
     struct sockaddr_in myaddr;
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     printf("El socket se ha enlazado correctamente\n");
 
     /*
-    3. Establecer el maximo de la cola de solicitudes pendientes
+    3. Establecer el maximo de la cola de solicitudes pendientes.
     */
     //Pasamos a la funcion el socket creado y le establecemos el limite de peticiones concurrentes a 5.
     listen(socketResult, 5);
@@ -119,8 +119,8 @@ int main(int argc, char *argv[])
         }
 
         /*
-  5. Crear una copia del proceso(hijo) para que atienda al cliente.
-  */
+        5. Crear una copia del proceso(hijo) para que atienda al cliente.
+        */
         //Comprobamos si el fork se hace correctamente
         //Si falla, informamos
         childId = fork();
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 }
 
 /**
- * Función para manejar ctrl+C
+ * Manejo de ctrl+c para parar correctamente el servidor.
  */
 void stopHandler(int signalType)
 {
