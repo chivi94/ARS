@@ -124,10 +124,10 @@ int main(int argc, char *argv[])
     printf("El socket se ha creado correctamente\n");
 
     //Comprobamos el registro de senial Ctrl + C
-    /*if (signal(SIGINT, &signal_handler) == SIG_ERR)
+    if (signal(SIGINT, &signal_handler) == SIG_ERR)
     {
-        perror("Error en señal.\n");
-    }*/
+        perror("signal()");
+    }
     /*
     2. Enlazamos a una direccion local bien conocida del servicio que ofrece el servidor.
    */
@@ -173,7 +173,8 @@ int main(int argc, char *argv[])
   */
         //Comprobamos si el fork se hace correctamente
         //Si falla, informamos
-        if ((childId = fork()) < 0)
+        childId = fork();
+        if (childId < 0)
         {
             error("Error al hacer fork.\n");
             closeSocket(socketResult);

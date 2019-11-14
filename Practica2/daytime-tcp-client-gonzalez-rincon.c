@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     int recvError = 0;
 
     //Comprobamos si surge algun problema al recibir datos del servidor.
-    if ((recvError = recv(socketResult, &datosRecibidos, BUFFERSIZE, 0) < 0))
+    if ((recvError = recv(socketResult, &datosRecibidos, BUFFERSIZE * 2, 0) < 0))
     {
         error("Fallo al recibir datos del servidor.\n");
         closeSocket(socketResult);
