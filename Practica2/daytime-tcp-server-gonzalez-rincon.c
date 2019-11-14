@@ -1,3 +1,4 @@
+  
 //Practica tema 6, Gonzalez Rincon Ivan
 //Servidor
 #include <stdio.h>
@@ -12,70 +13,20 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BUFFERSIZE 512
+#define SIZEBUFF 512
+#define HOSTNAME 512
 
-void signal_handler(int signal, int socketResult)
-{
-    if (signal == SIGINT)
-    {
-        if (close(socketResult) < 0)
-        {
-            perror("close()");
-            exit(EXIT_FAILURE);
-        }
-        exit(EXIT_SUCCESS);
-    }
-}
+//Cabeceras de funciones
+void stopHandler(int signal);
+void error(char message[]);
+void closeSocket(int result);
+void childFunction(struct sockaddr_in client_addr, int socket);
 
-//Metodo para imprimir un mensaje de error y terminar el programa.
-void error(char message[])
-{
-    perror(message);
-    exit(EXIT_FAILURE);
-}
 
-//Metodo para comprobar el cierre del socket y terminar el programa.
-void closeSocket(int result)
-{
-    //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
-    int closeResult = close(result);
-    if (closeResult < 0)
-    {
-        error("Error al cerrar el socket\n");
-    }
-    exit(EXIT_FAILURE);
-}
-
-void childFunction(struct sockaddr_in client_addr, int socketResult)
-{
-    char bufferOut[BUFFERSIZE];
-    char hostName[BUFFERSIZE];
-    //Mandamos los datos al cliente
-    system("date > /tmp/tt.txt");
-    //Obtenemos el nombre del servidor
-    gethostname(hostName, sizeof(hostName));
-    strcat(hostName, ": ");
-    FILE *fich = fopen("/tmp/tt.txt", "r");
-    //Reservamos memoria para poder concatenar la informacion del nombre del servidor y la fecha
-    char *result = malloc((BUFFERSIZE * 2) + 1);
-    strcpy(result, hostName);
-    if (fgets(bufferOut, sizeof(bufferOut), fich) == NULL)
-    {
-        error("Error al abrir el fichero\n");
-        closeSocket(socketResult);
-    }
-    //Concatenamos toda la informacion
-    strcat(result, bufferOut);
-    printf("La fecha y las hora son: %s\n", result);
-    //Mandamos la informacion al cliente
-
-    if (send(socketResult, result, sizeof(result), 0) < 0)
-    {
-        error("Error al mandar datos al cliente\n");
-        closeSocket(socketResult);
-    }
-    closeSocket(socketResult);
-}
+//Variables globales necesarias para el programa
+int socketResult;
+FILE *fich;
+char bufferOut[SIZEBUFF];
 
 int main(int argc, char *argv[])
 {
@@ -113,7 +64,6 @@ int main(int argc, char *argv[])
     /*
     1. Creamos un socket
     */
-    int socketResult;
 
     //Si la funcion de creacionn del Socket devuelve algo menor a 0, quiere decir que ha fallado.
     if ((socketResult = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -124,9 +74,9 @@ int main(int argc, char *argv[])
     printf("El socket se ha creado correctamente\n");
 
     //Comprobamos el registro de senial Ctrl + C
-    if (signal(SIGINT, &signal_handler) == SIG_ERR)
+    if (signal(SIGINT, &stopHandler) == SIG_ERR)
     {
-        perror("signal()");
+        perror("Error al parar el servidor.\n");
     }
     /*
     2. Enlazamos a una direccion local bien conocida del servicio que ofrece el servidor.
@@ -188,4 +138,70 @@ int main(int argc, char *argv[])
         }
     }
     exit(EXIT_SUCCESS);
+}
+
+/**
+ * Función para manejar ctrl+C
+ */
+void stopHandler(int signalType)
+{
+    if (signalType == SIGINT)
+    {
+        if (close(socketResult) < 0)
+        {
+            perror("close()");
+            exit(EXIT_FAILURE);
+        }
+	exit(0);
+    }
+}
+
+//Metodo para imprimir un mensaje de error y terminar el programa.
+void error(char message[])
+{
+    perror(message);
+    exit(EXIT_FAILURE);
+}
+
+//Metodo para comprobar el cierre del socket y terminar el programa.
+void closeSocket(int result)
+{
+    //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
+    int closeResult = close(result);
+    if (closeResult < 0)
+    {
+        error("Error al cerrar el socket\n");
+    }
+    exit(EXIT_FAILURE);
+}
+
+void childFunction(struct sockaddr_in client_addr, int socketResult)
+{
+    
+    char hostName[HOSTNAME];
+    //Mandamos los datos al cliente
+    system("date > /tmp/tt.txt");
+    //Obtenemos el nombre del servidor
+    gethostname(hostName, sizeof(hostName));
+    strcat(hostName, ": ");
+    fich = fopen("/tmp/tt.txt", "r");
+    //Reservamos memoria para poder concatenar la informacion del nombre del servidor y la fecha
+    char *result = malloc(HOSTNAME + SIZEBUFF + 1);
+    strcpy(result, hostName);
+    if (fgets(bufferOut, sizeof(bufferOut), fich) == NULL)
+    {
+        error("Error al abrir el fichero\n");
+        closeSocket(socketResult);
+    }
+    //Concatenamos toda la informacion
+    strcat(result, bufferOut);
+    printf("La fecha y las hora son: %s\n", result);
+    //Mandamos la informacion al cliente
+
+    if (send(socketResult, result, 1024, 0) < 0)
+    {
+        error("Error al mandar datos al cliente\n");
+        closeSocket(socketResult);
+    }
+    closeSocket(socketResult);
 }

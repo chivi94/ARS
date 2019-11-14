@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BUFFERSIZE 512
+#define BUFFERSIZE 1024
 
 //Metodo para imprimir un mensaje de error y terminar el programa.
 void error(char message[])
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     int socketResult;
 
     //Si la funcion de creacion del Socket devuelve algo menor a 0, quiere decir que ha fallado.
-    if ((socketResult = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((socketResult = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         error("Error al crear el socket\n");
     }
@@ -137,17 +137,17 @@ int main(int argc, char *argv[])
     /*
     5. Recibir datos de acuerdo con el protocolo del nivel de aplicacion.
     */
-    char datosRecibidos[BUFFERSIZE * 2] = "";
+    char datosRecibidos[BUFFERSIZE] = "";
     int recvError = 0;
 
     //Comprobamos si surge algun problema al recibir datos del servidor.
-    if ((recvError = recv(socketResult, &datosRecibidos, BUFFERSIZE * 2, 0) < 0))
+    if ((recvError = recv(socketResult, &datosRecibidos, sizeof(datosRecibidos), 0) < 0))
     {
         error("Fallo al recibir datos del servidor.\n");
         closeSocket(socketResult);
     }
     //Si todo ha ido bien, mostramos los datos que el servidor envia al cliente.
-    printf("Datos recibidos:\n%s\n", datosRecibidos);
+    printf("Datos recibidos:%s\n", datosRecibidos);
 
     /*
     6. Para finalizar con la comunicacion, cerramos la conexion con el servidor.
