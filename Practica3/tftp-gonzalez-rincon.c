@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     }
 
     //Comprobamos los argumentos que ha pasado el usuario como parametros del programa
-    checkArguments(argc, argv);
+    checkArguments(argc - 1, argv);
 
     //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
     struct servent *defaultPort;
@@ -162,13 +162,14 @@ void checkArguments(int argc, char *argv[])
             help();
             exit(EXIT_SUCCESS);
         }else{
-            perror("Hay argumetnos erroneos.\n");
+            perror("Hay argumentos erroneos.\n");
             help();
             exit(EXIT_FAILURE);
         }
     }
     else
     {
+        
         int i;
         // Iteramos sobre los argumentos para ver cuales han entrado.
         for (i = 1; i < argc; i++)
