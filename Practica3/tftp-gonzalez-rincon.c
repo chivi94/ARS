@@ -20,11 +20,9 @@
 /*
 Argumentos obligatorios:
 - Nombre del programa.
-- IP del servidor.
-- Modo del programa (lectura o escritura).
-- Archivo sobre el que leer o escribir.
+En este caso se muestra la ayuda por defecto.
 */
-#define MINARGS 2
+#define MINARGS 1
 /*
 Maximo numero de argumentos:
 - Los anteriores +
@@ -38,7 +36,7 @@ Maximo numero de argumentos:
 
 //Cabeceras de funciones
 unsigned char *allocateMemory(int sizeToAllocate);
-void checkArguments(int argc, char *argv[]);
+void checkArguments(int argc, char *argv[], int i);
 void error(char message[]);
 void closeSocket(int result);
 void help();
@@ -78,69 +76,78 @@ Formato de invocacion: client IP {-r|-w} archivo [-v][-h].
 */
 int main(int argc, char *argv[])
 {
-    // Si los argumentos n o llegan al minimo, se acaba el programa.
-    if (argc < MINARGS)
+    printf("Argumentos %d.\n", argc);
+    //Caso 1: 1 argumento. Nombre del programa.
+    if (argc <= MINARGS)
     {
-        error("Faltan argumentos.\n");
+        perror("Faltan argumentos.\n");
+        help();
+        exit(EXIT_FAILURE);
     }
-
-    // Si los argumentos superan el maximo, termina el programa.
-    if (argc > MAXARGS)
+    //Caso 2: 2 argumentos. Nombre del programa + {-h}. Se podrian hacer mas comprobaciones
+    else if (argc == 2)
     {
-        error("Demasiados argumentos.\n");
+        help();
+        exit(EXIT_SUCCESS);
     }
-
-    //Comprobamos los argumentos que ha pasado el usuario como parametros del programa
-    checkArguments(argc - 1, argv);
-
-    //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
-    struct servent *defaultPort;
-    defaultPort = getservbyname("tftp", "udp");
-
-    if (!defaultPort)
+    else
     {
-        error("Error al bindear el puerto.\n");
-    }
+        //Comprobamos los argumentos que ha pasado el usuario como parametros del programa
+        int i = 0;
+        for (i = 1; i < argc; i++)
+        {
+            checkArguments(argc, argv, i);
+        }
 
-    serverPort = defaultPort->s_port;
+        //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
+        struct servent *defaultPort;
+        defaultPort = getservbyname("tftp", "udp");
 
-    //Una vez obtenido el numero de puerto, procedemos a establecer la conexion con el socket
-    int socketResult;
-    if ((socketResult = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-        error("Error al crear el socket.\n");
-    }
+        if (!defaultPort)
+        {
+            error("Error al bindear el puerto.\n");
+        }
 
-    //Una vez creado el socket, procedemos a bindearlo.
-    int bindingResult;
-    struct sockaddr_in clientAddress;
-    clientAddress.sin_family = AF_INET;
-    clientAddress.sin_port = 0;
-    clientAddress.sin_addr.s_addr = INADDR_ANY;
+        serverPort = defaultPort->s_port;
 
-    //Comprobamos si surge algun error al enlazar el socket a la direccion local
-    if ((bindingResult = bind(socketResult, (struct sockaddr *)&clientAddress, sizeof(clientAddress))) < 0)
-    {
-        //De haberlo, se notifica, e intentamos cerrar el Socket
-        error("Error al enlazar el socket\n");
-        //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
+        //Una vez obtenido el numero de puerto, procedemos a establecer la conexion con el socket
+        int socketResult;
+        if ((socketResult = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+        {
+            error("Error al crear el socket.\n");
+        }
+
+        //Una vez creado el socket, procedemos a bindearlo.
+        int bindingResult;
+        struct sockaddr_in clientAddress;
+        clientAddress.sin_family = AF_INET;
+        clientAddress.sin_port = 0;
+        clientAddress.sin_addr.s_addr = INADDR_ANY;
+
+        //Comprobamos si surge algun error al enlazar el socket a la direccion local
+        if ((bindingResult = bind(socketResult, (struct sockaddr *)&clientAddress, sizeof(clientAddress))) < 0)
+        {
+            //De haberlo, se notifica, e intentamos cerrar el Socket
+            error("Error al enlazar el socket\n");
+            //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
+            closeSocket(socketResult);
+        }
+
+        //Una vez enlazado todo, comenzamos la comunicacion
+        switch (communicationMode)
+        {
+        case 01:
+            readMode(socketResult);
+            break;
+        case 02:
+            writeMode(socketResult);
+            break;
+        default:
+            error("Fallo en la ejecucion del programa.\n");
+            break;
+        }
         closeSocket(socketResult);
     }
-
-    //Una vez enlazado todo, comenzamos la comunicacion
-    switch (communicationMode)
-    {
-    case 01:
-        readMode(socketResult);
-        break;
-    case 02:
-        writeMode(socketResult);
-        break;
-    default:
-        error("Fallo en la ejecucion del programa.\n");
-        break;
-    }
-    closeSocket(socketResult);
     exit(EXIT_SUCCESS);
 }
 
@@ -151,66 +158,79 @@ unsigned char *allocateMemory(int sizeToAllocate)
 }
 
 //Metodo para comprobar los parametros de entrada
-void checkArguments(int argc, char *argv[])
+void checkArguments(int argc, char *argv[], int i)
 {
-    //En el caso de solo solicitar la ayuda
-    if (argc == 2)
+    if (i == 1)
     {
+        if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
+        {
+            error("Conversion IP.\n");
+        }
+    }
+
+    //Modo lectura
+    if (strcmp("-r", argv[i]) == 0)
+    {
+        communicationMode = 1;
+    }
+    //Modo escritura
+    else if (strcmp("-w", argv[i]) == 0)
+    {
+        communicationMode = 2;
+    }
+
+    if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
+    {
+        error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
+    }
+    strncpy(nameOfFile, argv[3], MAXFILESIZE);
+    /*Caso 3: 4 argumentos.
+    Nombre del programa + IP + {-r|-w} + archivo.
+    */
+
+    /*Caso 4: 5 o 6 argumentos.
+    Nombre del programa + IP + {-r|-w} + archivo.
+    */
+    else if (argc == 5 || argc == 6)
+    {
+        if ((inet_aton(argv[1], &serverIPAddress)) <= 0)
+        {
+            error("Conversion IP.\n");
+        }
+
+        //Modo lectura
+        if (strcmp("-r", argv[2]) == 0)
+        {
+            communicationMode = 1;
+        }
+        //Modo escritura
+        else if (strcmp("-w", argv[2]) == 0)
+        {
+            communicationMode = 2;
+        }
+
+        //Nombre del fichero
+        if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
+        {
+            error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
+        }
+        strncpy(nameOfFile, argv[3], MAXFILESIZE);
+
+        //Verbose
+        if (strcmp("-v", argv[4]) == 0)
+        {
+            verboseMode = 1;
+        }
         //Ayuda
-        if (strcmp("-h", argv[1]) == 0)
+        if (strcmp("-h", argv[5]) == 0)
         {
             help();
             exit(EXIT_SUCCESS);
-        }else{
-            perror("Hay argumentos erroneos.\n");
-            help();
-            exit(EXIT_FAILURE);
         }
     }
-    else
+    else if (argc > MAXARGS)
     {
-        
-        int i;
-        // Iteramos sobre los argumentos para ver cuales han entrado.
-        for (i = 1; i < argc; i++)
-        {
-            if (i == 1)
-            {
-                if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
-                {
-                    error("Conversion IP.\n");
-                }
-            }
-            if (i == 3)
-            {
-                if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
-                {
-                    error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
-                }
-                strncpy(nameOfFile, argv[i], MAXFILESIZE);
-            }
-            //Modo lectura
-            if (strcmp("-r", argv[i]) == 0)
-            {
-                communicationMode = 1;
-            }
-            //Modo escritura
-            if (strcmp("-w", argv[i]) == 0)
-            {
-                communicationMode = 2;
-            }
-            //Verbose
-            if (strcmp("-v", argv[i]) == 0)
-            {
-                verboseMode = 1;
-            }
-            //Ayuda
-            if (strcmp("-h", argv[i]) == 0)
-            {
-                help();
-                exit(EXIT_SUCCESS);
-            }
-        }
+        error("Demasiados argumentos.\n");
     }
 }
 
