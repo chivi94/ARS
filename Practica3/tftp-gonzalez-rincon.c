@@ -37,6 +37,7 @@ Maximo numero de argumentos:
 #define TRANSMISSIONMODE "octet"
 
 //Cabeceras de funciones
+unsigned char *allocateMemory(int sizeToAllocate);
 void checkArguments(int argc, char *argv[]);
 void error(char message[]);
 void closeSocket(int result);
@@ -143,50 +144,74 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
+//Metodo para evitar repetir la llamada repetitiva de calloc
+unsigned char *allocateMemory(int sizeToAllocate)
+{
+    return (unsigned char *)calloc(sizeToAllocate, sizeof(unsigned char));
+}
+
 //Metodo para comprobar los parametros de entrada
 void checkArguments(int argc, char *argv[])
 {
-    int i;
-    // Iteramos sobre los argumentos para ver cuales han entrado.
-    for (i = 1; i < argc; i++)
+    //En el caso de solo solicitar la ayuda
+    if (argc == 2)
     {
-        if (i == 1)
-        {
-            if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
-            {
-                error("Conversion IP.\n");
-            }
-        }
-        if(i == 3){
-            if((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0){
-                error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
-            }
-            strncpy(nameOfFile, argv[i], MAXFILESIZE);
-        }
-        //Modo lectura
-        if (strcmp("-r", argv[i]) == 0)
-        {
-            communicationMode = 1;
-        }
-        //Modo escritura
-        if (strcmp("-w", argv[i]) == 0)
-        {
-            communicationMode = 2;
-        }
-        //Verbose
-        if (strcmp("-v", argv[i]) == 0)
-        {
-            verboseMode = 1;
-        }
         //Ayuda
-        if (strcmp("-h", argv[i]) == 0)
+        if (strcmp("-h", argv[1]) == 0)
         {
             help();
             exit(EXIT_SUCCESS);
+        }else{
+            perror("Hay argumetnos erroneos.\n");
+            help();
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        int i;
+        // Iteramos sobre los argumentos para ver cuales han entrado.
+        for (i = 1; i < argc; i++)
+        {
+            if (i == 1)
+            {
+                if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
+                {
+                    error("Conversion IP.\n");
+                }
+            }
+            if (i == 3)
+            {
+                if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
+                {
+                    error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
+                }
+                strncpy(nameOfFile, argv[i], MAXFILESIZE);
+            }
+            //Modo lectura
+            if (strcmp("-r", argv[i]) == 0)
+            {
+                communicationMode = 1;
+            }
+            //Modo escritura
+            if (strcmp("-w", argv[i]) == 0)
+            {
+                communicationMode = 2;
+            }
+            //Verbose
+            if (strcmp("-v", argv[i]) == 0)
+            {
+                verboseMode = 1;
+            }
+            //Ayuda
+            if (strcmp("-h", argv[i]) == 0)
+            {
+                help();
+                exit(EXIT_SUCCESS);
+            }
         }
     }
 }
-
 
 //Metodo para imprimir un mensaje de error y terminar el programa.
 void error(char message[])
@@ -275,7 +300,7 @@ unsigned char *initPackage()
     correspondientes al tamanio maximo de cada subconjunto del paquete total
     que se va a solicitar al servidor, y que todos esos espacios sean del mismo tipo.
     */
-    resultPackage = (unsigned char *)(calloc(PACKAGEPART, sizeof(unsigned char)));
+    resultPackage = allocateMemory(PACKAGEPART);
     if (resultPackage == 0)
     {
         error("Fallo al reservar memoria.\n");
@@ -313,26 +338,29 @@ unsigned char *initPackage()
 /*
 Este metodo se encargara de la creacion de los paquetes de datos.
 */
-unsigned char *packageType(int blockNumber, int type){
+unsigned char *packageType(int blockNumber, int type)
+{
     pckgSize = 0;
     unsigned char *newPackage;
 
-    newPackage = (unsigned char *)calloc(4, sizeof(unsigned char));
-    if(newPackage == 0){
+    newPackage = allocateMemory(4);
+    if (newPackage == 0)
+    {
         error("Fallo al crear el paquete de datos.\n");
     }
 
-    switch(type){
-        //Codigo 3 para paquete de datos
-        case 0:
-        newPackage[1] = 3; 
+    switch (type)
+    {
+    //Codigo 3 para paquete de datos
+    case 0:
+        newPackage[1] = 3;
         break;
-        //Codigo 4 para ACK
-        case 1:
-        newPackage[1] = 4; 
+    //Codigo 4 para ACK
+    case 1:
+        newPackage[1] = 4;
         break;
     }
-    
+
     pckgSize = 2;
 
     //Desplazamos las posiciones de los paquetes, siguiendo las indicaciones dadas en clase.
@@ -344,8 +372,6 @@ unsigned char *packageType(int blockNumber, int type){
     return newPackage;
 }
 
-
-
 /*Metodo que se encargara de comprobar los tipos de paquete que
 se envian y/o reciben entre el cliente y el servidor, para poder
 llevar un control de los datos enviados.
@@ -355,7 +381,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
 
     auxPackage = 0;
     int content;
-    
+
     /*Tenemos que comprobar el contenido del paquete, para saber que tipo de paquete esta tratando el programa.
     Los casos son los codigos de operacion planteados por el enunciado:
     1 - RRQ.
@@ -397,21 +423,25 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
     //ACK
     case 4:
         auxPackage = package[2] + 256 + package[3];
-        if(verboseMode){
+        if (verboseMode)
+        {
             verboseText(4);
         }
 
-        if(blockNumber != auxPackage){
+        if (blockNumber != auxPackage)
+        {
             error("Error en el orden de envio de los paquetes.\n");
         }
 
-        if(fichIn == NULL){
+        if (fichIn == NULL)
+        {
             fichIn = fopen(nameOfFile, "rb");
         }
         unsigned char *ackResult = packageType(auxPackage + 1, 0);
         content = fread(ackResult + 4, 1, PACKAGEPART, fichIn);
         pckgSize += content;
-        if(verboseMode){
+        if (verboseMode)
+        {
             auxPackage += 1;
             verboseText(3);
         }
@@ -454,7 +484,7 @@ void readMode(int socketResult)
         closeSocket(socketResult);
     }
 
-    in = (unsigned char *)calloc(PACKAGETORCV, sizeof(unsigned char));
+    in = allocateMemory(PACKAGETORCV);
     if (in == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
@@ -485,6 +515,6 @@ void readMode(int socketResult)
 }
 
 //Metodo para activar el modo escritura del cliente
-void writeMode(int socketResult){
-
+void writeMode(int socketResult)
+{
 }
