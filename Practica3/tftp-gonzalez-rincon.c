@@ -383,7 +383,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
 
         if (fichOut == NULL)
         {
-            fichOut = fopen(nameOfFile, "w");
+            fichOut = fopen(nameOfFile, "wb");
         }
         fwrite(package + 4, 1, pckgSize - 4, fichOut);
 
@@ -406,7 +406,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         }
 
         if(fichIn == NULL){
-            fichIn = fopen(nameOfFile, "r");
+            fichIn = fopen(nameOfFile, "rb");
         }
         unsigned char *ackResult = packageType(auxPackage + 1, 0);
         content = fread(ackResult + 4, 1, PACKAGEPART, fichIn);
