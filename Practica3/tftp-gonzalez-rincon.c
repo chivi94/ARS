@@ -16,6 +16,7 @@
 #define PACKAGEPART 512
 #define PACKAGETORCV 516
 #define BYTESTOADD 2
+#define MAXFILESIZE 100
 /*
 Argumentos obligatorios:
 - Nombre del programa.
@@ -23,7 +24,7 @@ Argumentos obligatorios:
 - Modo del programa (lectura o escritura).
 - Archivo sobre el que leer o escribir.
 */
-#define MINARGS 4
+#define MINARGS 2
 /*
 Maximo numero de argumentos:
 - Los anteriores +
@@ -43,6 +44,7 @@ void help();
 void verboseText(int programPart);
 void checkResult(int result, char message[]);
 unsigned char *initPackage();
+unsigned char *packageType(int blockNumber, int type);
 unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber);
 void readMode(int socketResult);
 void writeMode(int socketResult);
@@ -55,6 +57,7 @@ char *nameOfFile;
 char bufferOut[SIZEBUFF];
 uint16_t serverPort;
 struct in_addr serverIPAddress;
+unsigned int auxPackage;
 FILE *fichOut;
 FILE *fichIn;
 /*
@@ -77,19 +80,17 @@ int main(int argc, char *argv[])
     // Si los argumentos n o llegan al minimo, se acaba el programa.
     if (argc < MINARGS)
     {
-        printf("Faltan argumentos.\n");
-        exit(EXIT_FAILURE);
+        error("Faltan argumentos.\n");
     }
 
     // Si los argumentos superan el maximo, termina el programa.
-    if (argc > 6)
+    if (argc > MAXARGS)
     {
-        printf("Demasiados argumentos.\n");
-        exit(EXIT_FAILURE);
+        error("Demasiados argumentos.\n");
     }
 
     //Comprobamos los argumentos que ha pasado el usuario como parametros del programa
-    checkArguments(argc, &argv);
+    checkArguments(argc, argv);
 
     //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
     struct servent *defaultPort;
@@ -156,6 +157,12 @@ void checkArguments(int argc, char *argv[])
                 error("Conversion IP.\n");
             }
         }
+        if(i == 3){
+            if((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0){
+                error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
+            }
+            strncpy(nameOfFile, argv[i], MAXFILESIZE);
+        }
         //Modo lectura
         if (strcmp("-r", argv[i]) == 0)
         {
@@ -179,6 +186,7 @@ void checkArguments(int argc, char *argv[])
         }
     }
 }
+
 
 //Metodo para imprimir un mensaje de error y terminar el programa.
 void error(char message[])
@@ -219,28 +227,37 @@ void verboseText(int programPart)
     switch (programPart)
     {
     case 1:
-        printf("Enviada solicitud de lectura de %s a servidor tftp en %s\n", nameOfFile, inet_ntoa(serverIPAddress));
+        printf("Enviada solicitud de lectura de %s a servidor tftp en %s.\n", nameOfFile, inet_ntoa(serverIPAddress));
         break;
     case 2:
+        printf("Recibido bloque del servidor tftp.\n");
+        printf("El bloque correspondiente a %d.\n", auxPackage);
         break;
     case 3:
+        printf("Enviamos el paquete ACK correspondiente al bloque %d.\n", auxPackage);
         break;
     case 4:
+        printf("Recibido el ACK proviniente del servidor.\n");
+        printf("El bloque corresponde al codigo %d.\n", auxPackage);
         break;
     case 5:
         printf("Ultimo paquete mandado. Cerramos el fichero.\n");
         break;
     default:
+        //Aqui no deberia entrar nunca
+        printf("-------");
+        break;
     }
 }
 
-void checkResult(int result, char message[]){
+void checkResult(int result, char message[])
+{
     if (result < 0)
-        {
-            fclose(fichIn);
-            error(message);
-            closeSocket(socketResult);
-        }
+    {
+        fclose(fichIn);
+        error(message);
+        closeSocket(socketResult);
+    }
 }
 
 /*
@@ -292,12 +309,119 @@ unsigned char *initPackage()
     return resultPackage;
 }
 
-/*Metodo que se encargara de comprobar los tipos de paquete que
-se enviann y/o reciben entre el cliente y el servidor, para poder
-llevar un control de los mismos.
+/*
+Este metodo se encargara de la creacion de los paquetes de datos.
 */
-unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber){
+unsigned char *packageType(int blockNumber, int type){
+    pckgSize = 0;
+    unsigned char *newPackage;
 
+    newPackage = (unsigned char *)calloc(PACKAGETORCV, sizeof(unsigned char));
+    if(newPackage == 0){
+        error("Fallo al crear el paquete de datos.\n");
+    }
+
+    switch(type){
+        //Codigo 3 para paquete de datos
+        case 0:
+        newPackage[1] = 3; 
+        break;
+        //Codigo 4 para ACK
+        case 1:
+        newPackage[1] = 4; 
+        break;
+    }
+    
+    pckgSize = 2;
+
+    //Desplazamos las posiciones de los paquetes, siguiendo las indicaciones dadas en clase.
+    newPackage[2] = blockNumber / 256;
+    newPackage[3] = blockNumber % 256;
+
+    pckgSize += 2;
+
+    return newPackage;
+}
+
+
+
+/*Metodo que se encargara de comprobar los tipos de paquete que
+se envian y/o reciben entre el cliente y el servidor, para poder
+llevar un control de los datos enviados.
+*/
+unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
+{
+
+    auxPackage = 0;
+    int content;
+    
+    /*Tenemos que comprobar el contenido del paquete, para saber que tipo de paquete esta tratando el programa.
+    Los casos son los codigos de operacion planteados por el enunciado:
+    1 - RRQ.
+    2 - WRQ.
+    3 - Datos.
+    4 - ACK.
+    5 - Error.
+    Para este bloque, manejaremos los 3 ultimos.
+    */
+    switch (package[1])
+    {
+    //Bloque de datos
+    case 3:
+        auxPackage = package[2] * 256 + package[3];
+        if (verboseMode)
+        {
+            verboseText(2);
+        }
+
+        //Para comprobar el orden de los paquetes
+        if (blockNumber >= auxPackage)
+        {
+            error("Error en el orden de envio de los paquetes.\n");
+        }
+
+        if (fichOut == NULL)
+        {
+            fichOut = fopen(nameOfFile, "w");
+        }
+        fwrite(package + 4, 1, pckgSize - 4, fichOut);
+
+        if (verboseMode)
+        {
+            verboseText(3);
+        }
+        return packageType(auxPackage, 1);
+        break;
+
+    //ACK
+    case 4:
+        auxPackage = package[2] + 256 + package[3];
+        if(verboseMode){
+            verboseText(4);
+        }
+
+        if(blockNumber != auxPackage){
+            error("Error en el orden de envio de los paquetes.\n");
+        }
+
+        if(fichIn == NULL){
+            fichIn = fopen(nameOfFile, "r");
+        }
+        unsigned char *ackResult = packageType(auxPackage + 1, 0);
+        content = fread(ackResult + 4, 1, PACKAGEPART, fichIn);
+        pckgSize += content;
+        if(verboseMode){
+            auxPackage += 1;
+            verboseText(3);
+        }
+        return ackResult;
+        break;
+    case 5:
+        error("Ha surgido un error.\n");
+        break;
+    }
+
+    return NULL;
 }
 
 //Metodo para activar el modo lectura del cliente
@@ -329,7 +453,8 @@ void readMode(int socketResult)
         closeSocket(socketResult);
     }
 
-    if ((in = (unsigned char *)(calloc(PACKAGETORCV, sizeof(unsigned char))) == 0))
+    in = (unsigned char *)calloc(PACKAGETORCV, sizeof(unsigned char));
+    if (in == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
     }
@@ -340,18 +465,25 @@ void readMode(int socketResult)
     do
     {
         recvResult = recvfrom(socketResult, &in, PACKAGETORCV, 0, (struct sockaddr *)&serverAddr, &addressLength);
-        checkResult(recvResult, "Error al recibir datos del servidor\n");        
-        if(out != 0){
+        checkResult(recvResult, "Error al recibir datos del servidor\n");
+        if (out != 0)
+        {
             free(out);
         }
 
-        out = checkPackage(0, in, blockNumber);
-		sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-		checkResult(sendResult, "Error al enviar datos al servidor.\n");
-		blockNumber++;
+        out = checkPckg(0, in, blockNumber);
+        sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+        checkResult(sendResult, "Error al enviar datos al servidor.\n");
+        blockNumber++;
     } while (recvResult - 4 == PACKAGEPART);
-    if(verboseMode){
+    if (verboseMode)
+    {
         verboseText(5);
     }
-    fclose(fichIn);
+    fclose(fichOut);
+}
+
+//Metodo para activar el modo escritura del cliente
+void writeMode(int socketResult){
+
 }
