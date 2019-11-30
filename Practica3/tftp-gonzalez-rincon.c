@@ -296,7 +296,8 @@ unsigned char *initPackage()
     a desplazamientos en los bytes necesarios para respetar
     el formato de los paquetes de datos.
     */
-    pckgSize = (pckgSize + addSize) + 1;
+    pckgSize = (pckgSize + addSize);
+    pckgSize++;
 
     addSize = sprintf((char *)resultPackage + pckgSize, "%s", TRANSMISSIONMODE);
     if (addSize < 0)
@@ -471,7 +472,7 @@ void readMode(int socketResult)
             free(out);
         }
 
-        out = checkPckg(0, in, blockNumber);
+        out = checkPckg(recvResult, in, blockNumber);
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
         checkResult(sendResult, "Error al enviar datos al servidor.\n");
         blockNumber++;
