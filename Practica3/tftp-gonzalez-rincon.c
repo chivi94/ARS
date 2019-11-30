@@ -317,7 +317,7 @@ unsigned char *packageType(int blockNumber, int type){
     pckgSize = 0;
     unsigned char *newPackage;
 
-    newPackage = (unsigned char *)calloc(PACKAGETORCV, sizeof(unsigned char));
+    newPackage = (unsigned char *)calloc(4, sizeof(unsigned char));
     if(newPackage == 0){
         error("Fallo al crear el paquete de datos.\n");
     }
