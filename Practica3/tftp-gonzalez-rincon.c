@@ -517,12 +517,8 @@ void readMode(int socketResult)
             free(out);
         }
         printf("Pasamos el null del paquete de salida.\n");
-        int i = 0;
-        for (i = 0; i < sizeof(in); i++)
-        {
-            printf("Tengo en el array: %c ", in[i]);
-        }
-        printf("Comprobamos paquete de salida.\n");
+        printf("Tamanio del paquete de entrada: %d.\n", sizeof(in));
+        printf("Comprobamos paquete de entrada.\n");
         out = checkPckg(recvResult, in, blockNumber);
         printf("Hemos comprobado el paquete.\n");
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
