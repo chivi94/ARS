@@ -11,11 +11,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define SIZEBUFF 512
-#define PACKAGEPART 512
-#define PACKAGETORCV 516
-#define BYTESTOADD 2
-#define MAXFILESIZE 100
 /*
 Argumentos obligatorios:
 - Nombre del programa.
@@ -30,7 +25,9 @@ Maximo numero de argumentos:
 */
 #define MAXARGS 5
 
-/**/
+/*
+Modo de transmision de los datos
+*/
 #define TRANSMISSIONMODE "octet"
 
 //Cabeceras de funciones
@@ -46,11 +43,9 @@ void readMode(int socketResult);
 void writeMode(int socketResult);
 
 //Variables globales necesarias para el programa
-int socketResult;
 int communicationMode;
 int pckgSize = 0;
 char *nameOfFile;
-char bufferOut[SIZEBUFF];
 uint16_t serverPort;
 struct in_addr serverIPAddress;
 FILE *fichOut;
@@ -213,11 +208,11 @@ void checkArguments(int argc, char *argv[])
         }
         if (i == 3)
         {
-            if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
+            if ((nameOfFile = (char *)calloc(100, sizeof(char))) == 0)
             {
                 error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
             }
-            strncpy(nameOfFile, argv[3], MAXFILESIZE);
+            strncpy(nameOfFile, argv[3], 100);
         }
 
         //Verbose
@@ -308,7 +303,7 @@ unsigned char *initPackage()
     a desplazamientos en los bytes necesarios para respetar
     el formato de los paquetes de datos.
     */
-    pckgSize += pckgSize;
+    pckgSize += addSize;
     pckgSize++;
 
     addSize = sprintf((char *)resultPackage + pckgSize, "%s", TRANSMISSIONMODE);
@@ -435,7 +430,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
             fichIn = fopen(nameOfFile, "rb");
         }
         unsigned char *ackResult = packageType(auxPackage + 1, 0);
-        content = fread(ackResult + 4, 1, PACKAGEPART, fichIn);
+        content = fread(ackResult + 4, 1, 512, fichIn);
         pckgSize += content;
         if (verboseMode)
         {
@@ -499,7 +494,7 @@ void readMode(int socketResult)
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
-        
+
         if (outPackage != 0)
         {
             free(outPackage);
