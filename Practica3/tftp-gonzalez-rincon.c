@@ -416,7 +416,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         {
             fichOut = fopen(nameOfFile, "wb");
         }
-        prinft("Abrimos el fichero de salida.\n");
+        printf("Abrimos el fichero de salida.\n");
         fwrite(package + 4, 1, pckgSize - 4, fichOut);
 
         if (verboseMode)
