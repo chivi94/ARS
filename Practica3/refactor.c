@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
             readMode(socketResult);
             break;
         case 02:
-            //writeMode(socketResult);
+            writeMode(socketResult);
             break;
         default:
             error("Fallo en la ejecucion del programa.\n");
