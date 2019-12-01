@@ -401,7 +401,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         {
             fichOut = fopen(nameOfFile, "wb");
         }
-        printf("Abrimos el fichero de salida.\n");
+
         fwrite(package + 4, 1, pckgSize - 4, fichOut);
 
         if (verboseMode)
@@ -433,7 +433,6 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         pckgSize += content;
         if (verboseMode)
         {
-            auxPackage += 1;
             verboseText(3, auxPackage + 1);
         }
         return ackResult;
@@ -522,32 +521,32 @@ void writeMode(int socketResult)
 {
     //Vamos a mandar datos al servidor
     int sendResult, recvResult;
-    unsigned char *out;
-    unsigned char *in;
+    unsigned char *outPackage;
 
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = serverPort;
     serverAddr.sin_addr = serverIPAddress;
 
-    out = initPackage();
+    outPackage = initPackage();
 
     //Si el modo verbose esta activado -> informacion.
     if (verboseMode)
     {
-        verboseText(9, 0);
+        verboseText(1, 0);
         fflush(stdout);
     }
 
     //Enviamos los datos y comprobamos si da fallo. En caso afirmativo, el programa termina.
-    sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+    sendResult = sendto(socketResult, outPackage, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
     if (sendResult < 0)
     {
         error("Error al enviar datos al servidor\n");
         closeSocket(socketResult);
     }
 
-    if ((in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
+    unsigned char *inPackage;
+    if ((inPackage = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
     }
@@ -557,25 +556,25 @@ void writeMode(int socketResult)
     //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
     do
     {
-
-        recvResult = recvfrom(socketResult, in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
+        recvResult = recvfrom(socketResult, inPackage, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
         if (recvResult < 0)
         {
-            fclose(fichIn);
+            fclose(fichOut);
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
 
-        if (out != 0)
+        if (outPackage != 0)
         {
-            free(out);
+            free(outPackage);
         }
-        out = checkPckg(0, in, blockNumber);
-        sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+
+        outPackage = checkPckg(0, inPackage, blockNumber);
+        sendResult = sendto(socketResult, outPackage, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 
         if (sendResult < 0)
         {
-            fclose(fichOut);
+            fclose(fichIn);
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
