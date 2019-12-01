@@ -143,7 +143,6 @@ int main(int argc, char *argv[])
         switch (communicationMode)
         {
         case 01:
-            printf("Estoy en el modo lectura.\n");
             readMode(socketResult);
             break;
         case 02:
@@ -485,17 +484,20 @@ void readMode(int socketResult)
         closeSocket(socketResult);
     }
 
+    printf("Alojamos memoria para el paquete.\n");
     in = allocateMemory(PACKAGETORCV);
     if (in == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
     }
 
+    printf("Memoria alojada.\n");
     socklen_t addressLength = sizeof(serverAddr);
     int blockNumber = 0;
     //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
     do
     {
+        printf("Comenzamos el bucle do-while.\n");
         recvResult = recvfrom(socketResult, &in, PACKAGETORCV, 0, (struct sockaddr *)&serverAddr, &addressLength);
         checkResult(recvResult, "Error al recibir datos del servidor\n");
         if (out != 0)
