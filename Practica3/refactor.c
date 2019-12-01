@@ -520,7 +520,7 @@ void readMode(int socketResult)
 //Metodo para activar el modo escritura del cliente
 void writeMode(int socketResult)
 {
-//Vamos a mandar datos al servidor
+    //Vamos a mandar datos al servidor
     int sendResult, recvResult;
     unsigned char *out;
     unsigned char *in;
@@ -547,19 +547,17 @@ void writeMode(int socketResult)
         closeSocket(socketResult);
     }
 
-    
     if ((in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
     }
 
-    
     socklen_t addressLength = sizeof(serverAddr);
     int blockNumber = 0;
     //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
     do
     {
-        
+
         recvResult = recvfrom(socketResult, in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
         if (recvResult < 0)
         {
@@ -567,7 +565,7 @@ void writeMode(int socketResult)
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
-        //checkResult(recvResult, "Error al recibir datos del servidor\n");
+
         if (out != 0)
         {
             free(out);
@@ -575,7 +573,12 @@ void writeMode(int socketResult)
         out = checkPckg(0, in, blockNumber);
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 
-        checkResult(sendResult, "Error al enviar datos al servidor.\n");
+        if (sendResult < 0)
+        {
+            fclose(fichOut);
+            error("Error al recibir datos del servidor.\n");
+            closeSocket(socketResult);
+        }
         blockNumber++;
     } while (recvResult - 4 == 512);
     if (verboseMode)
