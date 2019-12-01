@@ -39,7 +39,6 @@ void error(char message[]);
 void closeSocket(int result);
 void help();
 void verboseText(int programPart, unsigned int auxPackage);
-void checkResult(int result, char message[]);
 unsigned char *initPackage();
 unsigned char *packageType(int blockNumber, int type);
 unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber);
@@ -500,7 +499,7 @@ void readMode(int socketResult)
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
-        //checkResult(recvResult, "Error al recibir datos del servidor\n");
+        
         if (outPackage != 0)
         {
             free(outPackage);
