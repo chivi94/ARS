@@ -36,7 +36,7 @@ Maximo numero de argumentos:
 
 //Cabeceras de funciones
 unsigned char *allocateMemory(int sizeToAllocate);
-void checkArguments(int argc, char *argv[], int i);
+void checkArguments(int argc, char *argv[]);
 void error(char message[]);
 void closeSocket(int result);
 void help();
@@ -76,29 +76,22 @@ Formato de invocacion: client IP {-r|-w} archivo [-v][-h].
 */
 int main(int argc, char *argv[])
 {
-    printf("Argumentos %d.\n", argc);
-    //Caso 1: 1 argumento. Nombre del programa.
+    //Primero, vamos a comprobar los argumentos de nuestro programa.
+    //Caso 1: 1 argumento. Nombre del programa. Mostramos la ayuda de como usar el comando y terminamos.
     if (argc <= MINARGS)
     {
         perror("Faltan argumentos.\n");
         help();
         exit(EXIT_FAILURE);
+        //Caso 2, resto de argumentos. Puede ir desde 2 argumentos hasta el maximo, que son 6.
     }
-    //Caso 2: 2 argumentos. Nombre del programa + {-h}. Se podrian hacer mas comprobaciones
-    else if (argc == 2)
+    else if (argc > MAXARGS)
     {
-        help();
-        exit(EXIT_SUCCESS);
+        error("Demasiados argumentos.\n");
     }
     else
     {
-        //Comprobamos los argumentos que ha pasado el usuario como parametros del programa
-        int i = 0;
-        for (i = 1; i < argc; i++)
-        {
-            checkArguments(argc, argv, i);
-        }
-
+        checkArguments(argc - 1, argv);
         //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
         struct servent *defaultPort;
         defaultPort = getservbyname("tftp", "udp");
@@ -158,79 +151,48 @@ unsigned char *allocateMemory(int sizeToAllocate)
 }
 
 //Metodo para comprobar los parametros de entrada
-void checkArguments(int argc, char *argv[], int i)
+void checkArguments(int argc, char *argv[])
 {
-    if (i == 1)
+    int i = 0;
+    for (i = 1; i < argc; i++)
     {
-        if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
+        if (i == 1)
         {
-            error("Conversion IP.\n");
+            if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
+            {
+                error("Conversion IP.\n");
+            }
         }
-    }
-
-    //Modo lectura
-    if (strcmp("-r", argv[i]) == 0)
-    {
-        communicationMode = 1;
-    }
-    //Modo escritura
-    else if (strcmp("-w", argv[i]) == 0)
-    {
-        communicationMode = 2;
-    }
-
-    if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
-    {
-        error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
-    }
-    strncpy(nameOfFile, argv[3], MAXFILESIZE);
-    /*Caso 3: 4 argumentos.
-    Nombre del programa + IP + {-r|-w} + archivo.
-    */
-
-    /*Caso 4: 5 o 6 argumentos.
-    Nombre del programa + IP + {-r|-w} + archivo.
-    */
-    else if (argc == 5 || argc == 6)
-    {
-        if ((inet_aton(argv[1], &serverIPAddress)) <= 0)
-        {
-            error("Conversion IP.\n");
-        }
-
         //Modo lectura
-        if (strcmp("-r", argv[2]) == 0)
+        if (strcmp("-r", argv[i]) == 0)
         {
             communicationMode = 1;
         }
         //Modo escritura
-        else if (strcmp("-w", argv[2]) == 0)
+        else if (strcmp("-w", argv[i]) == 0)
         {
             communicationMode = 2;
         }
-
-        //Nombre del fichero
-        if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
+        if (i == 3)
         {
-            error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
+            if ((nameOfFile = (char *)calloc(MAXFILESIZE, sizeof(char))) == 0)
+            {
+                error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
+            }
+            strncpy(nameOfFile, argv[3], MAXFILESIZE);
         }
-        strncpy(nameOfFile, argv[3], MAXFILESIZE);
 
         //Verbose
-        if (strcmp("-v", argv[4]) == 0)
+        if (strcmp("-v", argv[i]) == 0)
         {
             verboseMode = 1;
         }
         //Ayuda
-        if (strcmp("-h", argv[5]) == 0)
+        if (strcmp("-h", argv[i]) == 0)
         {
             help();
             exit(EXIT_SUCCESS);
         }
-    }
-    else if (argc > MAXARGS)
-    {
-        error("Demasiados argumentos.\n");
     }
 }
 
