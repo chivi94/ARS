@@ -490,8 +490,7 @@ void readMode(int socketResult)
     }
 
     printf("Alojamos memoria para el paquete.\n");
-    in = allocateMemory(PACKAGETORCV);
-    if (in == 0)
+    if ((in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
     }
