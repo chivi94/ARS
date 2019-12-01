@@ -384,7 +384,6 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
     {
     //Bloque de datos
     case 3:
-        printf("Tenemos un bloque de datos.\n");
         auxPackage = package[2] * 256 + package[3];
         if (verboseMode)
         {
@@ -516,4 +515,72 @@ void readMode(int socketResult)
         verboseText(5, 0);
     }
     fclose(fichOut);
+}
+
+//Metodo para activar el modo escritura del cliente
+void writeMode(int socketResult)
+{
+//Vamos a mandar datos al servidor
+    int sendResult, recvResult;
+    unsigned char *out;
+    unsigned char *in;
+
+    struct sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = serverPort;
+    serverAddr.sin_addr = serverIPAddress;
+
+    out = initPackage();
+
+    //Si el modo verbose esta activado -> informacion.
+    if (verboseMode)
+    {
+        verboseText(9, 0);
+        fflush(stdout);
+    }
+
+    //Enviamos los datos y comprobamos si da fallo. En caso afirmativo, el programa termina.
+    sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+    if (sendResult < 0)
+    {
+        error("Error al enviar datos al servidor\n");
+        closeSocket(socketResult);
+    }
+
+    
+    if ((in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
+    {
+        error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
+    }
+
+    
+    socklen_t addressLength = sizeof(serverAddr);
+    int blockNumber = 0;
+    //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
+    do
+    {
+        
+        recvResult = recvfrom(socketResult, in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
+        if (recvResult < 0)
+        {
+            fclose(fichIn);
+            error("Error al recibir datos del servidor.\n");
+            closeSocket(socketResult);
+        }
+        //checkResult(recvResult, "Error al recibir datos del servidor\n");
+        if (out != 0)
+        {
+            free(out);
+        }
+        out = checkPckg(0, in, blockNumber);
+        sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+
+        checkResult(sendResult, "Error al enviar datos al servidor.\n");
+        blockNumber++;
+    } while (recvResult - 4 == 512);
+    if (verboseMode)
+    {
+        verboseText(5, 0);
+    }
+    fclose(fichIn);
 }
