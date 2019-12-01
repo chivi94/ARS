@@ -522,6 +522,7 @@ void readMode(int socketResult)
         {
             printf("Tengo en el array: %c ", in[i]);
         }
+        printf("Comprobamos paquete de salida.\n");
         out = checkPckg(recvResult, in, blockNumber);
         printf("Hemos comprobado el paquete.\n");
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
