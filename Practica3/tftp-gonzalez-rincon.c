@@ -502,7 +502,7 @@ void readMode(int socketResult)
     do
     {
         printf("Comenzamos el bucle do-while.\n");
-        recvResult = recvfrom(socketResult, &in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
+        recvResult = recvfrom(socketResult, in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
         if (recvResult < 0)
         {
             fclose(fichOut);
