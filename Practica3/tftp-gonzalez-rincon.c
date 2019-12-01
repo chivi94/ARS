@@ -517,7 +517,7 @@ void readMode(int socketResult)
             free(out);
         }
         printf("Pasamos el null del paquete de salida.\n");
-        printf("Tamanio del paquete de entrada: %d.\n", sizeof(in));
+        printf("Tamanio del paquete de entrada: %lu.\n", sizeof(in));
         printf("Comprobamos paquete de entrada.\n");
         out = checkPckg(recvResult, in, blockNumber);
         printf("Hemos comprobado el paquete.\n");
