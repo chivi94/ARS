@@ -381,6 +381,7 @@ llevar un control de los datos enviados.
 unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
 {
 
+    printf("Comenzamos la comprobacion del paquete.\n");
     unsigned int auxPackage;
     int content;
 
@@ -397,6 +398,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
     {
     //Bloque de datos
     case 3:
+        printf("Tenemos un bloque de datos.\n");
         auxPackage = package[2] * 256 + package[3];
         if (verboseMode)
         {
@@ -414,6 +416,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         {
             fichOut = fopen(nameOfFile, "wb");
         }
+        prinft("Abrimos el fichero de salida.\n");
         fwrite(package + 4, 1, pckgSize - 4, fichOut);
 
         if (verboseMode)
