@@ -151,7 +151,6 @@ int main(int argc, char *argv[])
             error("Fallo en la ejecucion del programa.\n");
             break;
         }
-        free(nameOfFile);
         closeSocket(socketResult);
     }
     exit(EXIT_SUCCESS);
@@ -219,8 +218,8 @@ void closeSocket(int result)
     if (closeResult < 0)
     {
         error("Error al cerrar el socket\n");
-        exit(EXIT_FAILURE);
     }
+    exit(EXIT_FAILURE);
 }
 
 //Metodo para mostrar ayuda al usuario sobre el uso del comando

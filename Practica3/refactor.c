@@ -35,7 +35,6 @@ Maximo numero de argumentos:
 
 //Cabeceras de funciones
 void checkArguments(int argc, char *argv[]);
-unsigned char *allocateMemory(int sizeToAllocate);
 void error(char message[]);
 void closeSocket(int result);
 void help();
@@ -324,6 +323,51 @@ unsigned char *initPackage()
     return resultPackage;
 }
 
+/*
+Este metodo se encargara de la creacion de los paquetes de datos.
+*/
+unsigned char *packageType(int blockNumber, int type)
+{
+    pckgSize = 0;
+    unsigned char *newPackage;
+
+    switch (type)
+    {
+    case 0:
+        newPackage = (unsigned char *)calloc(516, sizeof(unsigned char));
+        break;
+    case 1:
+        newPackage = (unsigned char *)calloc(4, sizeof(unsigned char));
+        break;
+    }
+    if (newPackage == 0)
+    {
+        error("Fallo al crear el paquete de datos.\n");
+    }
+
+    switch (type)
+    {
+    //Codigo 3 para paquete de datos
+    case 0:
+        newPackage[1] = 3;
+        break;
+    //Codigo 4 para ACK
+    case 1:
+        newPackage[1] = 4;
+        break;
+    }
+
+    pckgSize = 2;
+
+    //Desplazamos las posiciones de los paquetes, siguiendo las indicaciones dadas en clase.
+    newPackage[2] = blockNumber / 256;
+    newPackage[3] = blockNumber % 256;
+
+    pckgSize += 2;
+
+    return newPackage;
+}
+
 /*Metodo que se encargara de comprobar los tipos de paquete que
 se envian y/o reciben entre el cliente y el servidor, para poder
 llevar un control de los datos enviados.
@@ -465,9 +509,14 @@ void readMode(int socketResult)
         outPackage = checkPckg(recvResult, inPackage, blockNumber);
         sendResult = sendto(socketResult, outPackage, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 
-        checkResult(sendResult, "Error al enviar datos al servidor.\n");
+        if (sendResult < 0)
+        {
+            fclose(fichOut);
+            error("Error al recibir datos del servidor.\n");
+            closeSocket(socketResult);
+        }
         blockNumber++;
-    } while (recvResult - 4 == PACKAGEPART);
+    } while (recvResult - 4 == 512);
     if (verboseMode)
     {
         verboseText(5, 0);
