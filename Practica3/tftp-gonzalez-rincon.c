@@ -506,7 +506,9 @@ void readMode(int socketResult)
         }
 
         out = checkPckg(recvResult, in, blockNumber);
+        printf("Hemos comprobado el paquete.\n");
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+        printf("Comprobamos resultado.\n");
         checkResult(sendResult, "Error al enviar datos al servidor.\n");
         blockNumber++;
     } while (recvResult - 4 == PACKAGEPART);
