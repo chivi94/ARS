@@ -499,7 +499,13 @@ void readMode(int socketResult)
     {
         printf("Comenzamos el bucle do-while.\n");
         recvResult = recvfrom(socketResult, &in, PACKAGETORCV, 0, (struct sockaddr *)&serverAddr, &addressLength);
-        checkResult(recvResult, "Error al recibir datos del servidor\n");
+        if (recvResult < 0)
+        {
+            fclose(fichOut);
+            error("Error al recibir datos del servidor.\n");
+            closeSocket(socketResult);
+        }
+        //checkResult(recvResult, "Error al recibir datos del servidor\n");
         if (out != 0)
         {
             free(out);
