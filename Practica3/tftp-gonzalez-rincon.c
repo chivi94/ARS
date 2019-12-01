@@ -91,7 +91,6 @@ int main(int argc, char *argv[])
     }
     else
     {
-        printf("Compruebo argumentos.\n");
         checkArguments(argc, argv);
         //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
         struct servent *defaultPort;
@@ -144,6 +143,7 @@ int main(int argc, char *argv[])
         switch (communicationMode)
         {
         case 01:
+            printf("Estoy en el modo lectura.\n");
             readMode(socketResult);
             break;
         case 02:
@@ -177,13 +177,11 @@ void checkArguments(int argc, char *argv[])
             {
                 error("Conversion IP.\n");
             }
-            printf("Tengo la ip del servidor.\n");
         }
         //Modo lectura
         if (strcmp("-r", argv[i]) == 0)
         {
             communicationMode = 1;
-            printf("Estoy en modo lectura.\n");
         }
         //Modo escritura
         else if (strcmp("-w", argv[i]) == 0)
@@ -197,14 +195,12 @@ void checkArguments(int argc, char *argv[])
                 error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
             }
             strncpy(nameOfFile, argv[3], MAXFILESIZE);
-            printf("He cogido el nombre del fichero(%s).\n", nameOfFile);
         }
 
         //Verbose
         if (strcmp("-v", argv[i]) == 0)
         {
             verboseMode = 1;
-            printf("Modo verbose.\n");
         }
     }
 }
