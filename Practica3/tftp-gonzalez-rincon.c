@@ -511,7 +511,7 @@ void readMode(int socketResult)
         {
             free(out);
         }
-
+        printf("Pasamos el null del paquete de salida.\n");
         out = checkPckg(recvResult, in, blockNumber);
         printf("Hemos comprobado el paquete.\n");
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
