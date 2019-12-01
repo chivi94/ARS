@@ -383,7 +383,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
     printf("Comenzamos la comprobacion del paquete.\n");
     int i = 0;
     for(i = 0; i < sizeof(package); i++){
-        printf("Contenido del paquete %c.\n");
+        printf("Contenido del paquete %d.\n");
     }
     unsigned int auxPackage;
     int content;
