@@ -300,8 +300,8 @@ unsigned char *initPackage()
     correspondientes al tamanio maximo de cada subconjunto del paquete total
     que se va a solicitar al servidor, y que todos esos espacios sean del mismo tipo.
     */
-    resultPackage = allocateMemory(PACKAGEPART);
-    if (resultPackage == 0)
+    //resultPackage = allocateMemory(PACKAGEPART);
+    if ((resultPackage = (unsigned char *)calloc(512, sizeof(unsigned char))) == 0)
     {
         error("Fallo al reservar memoria.\n");
     }
@@ -312,7 +312,9 @@ unsigned char *initPackage()
     */
     resultPackage[1] = communicationMode;
     pckgSize = 2;
-    int addSize = sprintf((char *)(resultPackage + BYTESTOADD), "%s", nameOfFile);
+    int addSize;
+    
+    addSize = sprintf((char *)(resultPackage + 2), "%s", nameOfFile);
     if (addSize < 0)
     {
         error("Ha ocurrido un error al formatear el nombre del fichero.\n");
@@ -321,7 +323,7 @@ unsigned char *initPackage()
     a desplazamientos en los bytes necesarios para respetar
     el formato de los paquetes de datos.
     */
-    pckgSize = (pckgSize + addSize);
+    pckgSize += pckgSize;
     pckgSize++;
 
     addSize = sprintf((char *)resultPackage + pckgSize, "%s", TRANSMISSIONMODE);
