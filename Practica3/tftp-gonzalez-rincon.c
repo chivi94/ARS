@@ -29,7 +29,7 @@ Maximo numero de argumentos:
     - Modo verbose.
     - Ayuda para el usuario.
 */
-#define MAXARGS 6
+#define MAXARGS 5
 
 /**/
 #define TRANSMISSIONMODE "octet"
@@ -91,7 +91,8 @@ int main(int argc, char *argv[])
     }
     else
     {
-        checkArguments(argc - 1, argv);
+        printf("Compruebo argumentos.\n");
+        checkArguments(argc, argv);
         //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
         struct servent *defaultPort;
         defaultPort = getservbyname("tftp", "udp");
@@ -101,6 +102,10 @@ int main(int argc, char *argv[])
             error("Error al bindear el puerto.\n");
         }
 
+        if (verboseMode)
+        {
+            verboseText(6);
+        }
         serverPort = defaultPort->s_port;
 
         //Una vez obtenido el numero de puerto, procedemos a establecer la conexion con el socket
@@ -110,6 +115,10 @@ int main(int argc, char *argv[])
             error("Error al crear el socket.\n");
         }
 
+        if (verboseMode)
+        {
+            verboseText(7);
+        }
         //Una vez creado el socket, procedemos a bindearlo.
         int bindingResult;
         struct sockaddr_in clientAddress;
@@ -124,6 +133,11 @@ int main(int argc, char *argv[])
             error("Error al enlazar el socket\n");
             //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
             closeSocket(socketResult);
+        }
+
+        if (verboseMode)
+        {
+            verboseText(8);
         }
 
         //Una vez enlazado todo, comenzamos la comunicacion
@@ -156,17 +170,20 @@ void checkArguments(int argc, char *argv[])
     int i = 0;
     for (i = 1; i < argc; i++)
     {
+        printf("Estoy comprobando argumentos(%d).\n", i);
         if (i == 1)
         {
             if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
             {
                 error("Conversion IP.\n");
             }
+            printf("Tengo la ip del servidor.\n");
         }
         //Modo lectura
         if (strcmp("-r", argv[i]) == 0)
         {
             communicationMode = 1;
+            printf("Estoy en modo lectura.\n");
         }
         //Modo escritura
         else if (strcmp("-w", argv[i]) == 0)
@@ -180,18 +197,14 @@ void checkArguments(int argc, char *argv[])
                 error("Fallo al asignar la memoria necesaria para el nombre del fichero.\n");
             }
             strncpy(nameOfFile, argv[3], MAXFILESIZE);
+            printf("He cogido el nombre del fichero(%s).\n", nameOfFile);
         }
 
         //Verbose
         if (strcmp("-v", argv[i]) == 0)
         {
             verboseMode = 1;
-        }
-        //Ayuda
-        if (strcmp("-h", argv[i]) == 0)
-        {
-            help();
-            exit(EXIT_SUCCESS);
+            printf("Modo verbose.\n");
         }
     }
 }
@@ -250,6 +263,15 @@ void verboseText(int programPart)
         break;
     case 5:
         printf("Ultimo paquete mandado. Cerramos el fichero.\n");
+        break;
+    case 6:
+        printf("Se ha enlazado el puerto del servidor.\n");
+        break;
+    case 7:
+        printf("Se ha enlazado el Socket.\n");
+        break;
+    case 8:
+        printf("Se ha bindeado la direccion local con el servidor.\n");
         break;
     default:
         //Aqui no deberia entrar nunca
