@@ -40,7 +40,7 @@ void checkArguments(int argc, char *argv[]);
 void error(char message[]);
 void closeSocket(int result);
 void help();
-void verboseText(int programPart);
+void verboseText(int programPart, unsigned int auxPackage);
 void checkResult(int result, char message[]);
 unsigned char *initPackage();
 unsigned char *packageType(int blockNumber, int type);
@@ -56,7 +56,6 @@ char *nameOfFile;
 char bufferOut[SIZEBUFF];
 uint16_t serverPort;
 struct in_addr serverIPAddress;
-unsigned int auxPackage;
 FILE *fichOut;
 FILE *fichIn;
 /*
@@ -103,7 +102,7 @@ int main(int argc, char *argv[])
 
         if (verboseMode)
         {
-            verboseText(6);
+            verboseText(6, 0);
         }
         serverPort = defaultPort->s_port;
 
@@ -116,7 +115,7 @@ int main(int argc, char *argv[])
 
         if (verboseMode)
         {
-            verboseText(7);
+            verboseText(7, 0);
         }
         //Una vez creado el socket, procedemos a bindearlo.
         int bindingResult;
@@ -136,7 +135,7 @@ int main(int argc, char *argv[])
 
         if (verboseMode)
         {
-            verboseText(8);
+            verboseText(8, 0);
         }
 
         //Una vez enlazado todo, comenzamos la comunicacion
@@ -237,8 +236,9 @@ void help()
 
 /*Este metodo se encargara de imprimir el texto del modo verbose
 dependiendo de las distintas partes del programa donde se llame.
+Por defecto, si no necesita mostrar un numero de paquete, se le pasara un 0 como argumento.
 */
-void verboseText(int programPart)
+void verboseText(int programPart, unsigned int auxPackage)
 {
     switch (programPart)
     {
@@ -313,7 +313,7 @@ unsigned char *initPackage()
     resultPackage[1] = communicationMode;
     pckgSize = 2;
     int addSize;
-    
+
     addSize = sprintf((char *)(resultPackage + 2), "%s", nameOfFile);
     if (addSize < 0)
     {
@@ -381,7 +381,7 @@ llevar un control de los datos enviados.
 unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
 {
 
-    auxPackage = 0;
+    unsigned int auxPackage;
     int content;
 
     /*Tenemos que comprobar el contenido del paquete, para saber que tipo de paquete esta tratando el programa.
@@ -400,7 +400,8 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         auxPackage = package[2] * 256 + package[3];
         if (verboseMode)
         {
-            verboseText(2);
+            verboseText(2, auxPackage);
+            fflush(stdout);
         }
 
         //Para comprobar el orden de los paquetes
@@ -417,7 +418,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
 
         if (verboseMode)
         {
-            verboseText(3);
+            verboseText(3, auxPackage);
         }
         return packageType(auxPackage, 1);
         break;
@@ -427,7 +428,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         auxPackage = package[2] + 256 + package[3];
         if (verboseMode)
         {
-            verboseText(4);
+            verboseText(4, auxPackage);
         }
 
         if (blockNumber != auxPackage)
@@ -445,7 +446,7 @@ unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
         if (verboseMode)
         {
             auxPackage += 1;
-            verboseText(3);
+            verboseText(3, auxPackage + 1);
         }
         return ackResult;
         break;
@@ -475,7 +476,7 @@ void readMode(int socketResult)
     //Si el modo verbose esta activado -> informacion.
     if (verboseMode)
     {
-        verboseText(1);
+        verboseText(1, 0);
     }
 
     //Enviamos los datos y comprobamos si da fallo. En caso afirmativo, el programa termina.
@@ -523,7 +524,7 @@ void readMode(int socketResult)
     } while (recvResult - 4 == PACKAGEPART);
     if (verboseMode)
     {
-        verboseText(5);
+        verboseText(5, 0);
     }
     fclose(fichOut);
 }
