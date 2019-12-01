@@ -380,15 +380,9 @@ llevar un control de los datos enviados.
 */
 unsigned char *checkPckg(int pckgSize, unsigned char *package, int blockNumber)
 {
-
-    int i = 0;
-    for(i = 0; i < sizeof(package); i++){
-        printf("Tengo en el array: %c ", package[i]);
-    }
     printf("Comenzamos la comprobacion del paquete.\n");
     unsigned int auxPackage;
     int content;
-    
 
     /*Tenemos que comprobar el contenido del paquete, para saber que tipo de paquete esta tratando el programa.
     Los casos son los codigos de operacion planteados por el enunciado:
@@ -523,6 +517,11 @@ void readMode(int socketResult)
             free(out);
         }
         printf("Pasamos el null del paquete de salida.\n");
+        int i = 0;
+        for (i = 0; i < sizeof(in); i++)
+        {
+            printf("Tengo en el array: %c ", in[i]);
+        }
         out = checkPckg(recvResult, in, blockNumber);
         printf("Hemos comprobado el paquete.\n");
         sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
