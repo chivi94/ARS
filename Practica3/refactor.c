@@ -12,7 +12,6 @@
 #include <unistd.h>
 
 #define SIZEBUFF 512
-#define HOSTNAME 512
 #define PACKAGEPART 512
 #define PACKAGETORCV 516
 #define BYTESTOADD 2
@@ -35,8 +34,8 @@ Maximo numero de argumentos:
 #define TRANSMISSIONMODE "octet"
 
 //Cabeceras de funciones
-unsigned char *allocateMemory(int sizeToAllocate);
 void checkArguments(int argc, char *argv[]);
+unsigned char *allocateMemory(int sizeToAllocate);
 void error(char message[]);
 void closeSocket(int result);
 void help();
@@ -82,15 +81,17 @@ int main(int argc, char *argv[])
         perror("Faltan argumentos.\n");
         help();
         exit(EXIT_FAILURE);
-        //Caso 2, resto de argumentos. Puede ir desde 2 argumentos hasta el maximo, que son 6.
     }
+    //Caso 2: Mas de 6 argumentos. Fallo y salida del programa.
     else if (argc > MAXARGS)
     {
         error("Demasiados argumentos.\n");
     }
+    //Caso 3: Caso general, ejecucion normal del programa.
     else
     {
         checkArguments(argc, argv);
+
         //Como ya tenemos los argumentos, procedemos a obtener numero de puerto
         struct servent *defaultPort;
         defaultPort = getservbyname("tftp", "udp");
@@ -145,7 +146,7 @@ int main(int argc, char *argv[])
             readMode(socketResult);
             break;
         case 02:
-            writeMode(socketResult);
+            //writeMode(socketResult);
             break;
         default:
             error("Fallo en la ejecucion del programa.\n");
@@ -154,13 +155,39 @@ int main(int argc, char *argv[])
         free(nameOfFile);
         closeSocket(socketResult);
     }
+
     exit(EXIT_SUCCESS);
 }
 
-//Metodo para evitar repetir la llamada repetitiva de calloc
-unsigned char *allocateMemory(int sizeToAllocate)
+//Metodo para imprimir un mensaje de error y terminar el programa.
+void error(char message[])
 {
-    return (unsigned char *)calloc(sizeToAllocate, sizeof(unsigned char));
+    perror(message);
+    exit(EXIT_FAILURE);
+}
+
+//Metodo para comprobar el cierre del socket y terminar el programa.
+void closeSocket(int result)
+{
+    //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
+    int closeResult = close(result);
+    if (closeResult < 0)
+    {
+        error("Error al cerrar el socket\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+//Metodo para mostrar ayuda al usuario sobre el uso del comando
+void help()
+{
+    printf("El uso del programa es el siguiente:\n");
+    printf("Formato:nombreFicheroCompilado IP {-r|-w} archivo [-v][-h].\n");
+    printf("\t- IP: Direccion IP del servidor.\n");
+    printf("\t- {-r|-w}}: Modo de consulta hacia el servidor. Lectura o escritura, respectivamente\n");
+    printf("\t- archivo: Nombre del archivo con el que trabajaremos.\n");
+    printf("\t- [-v]: Modo verbose en el que se muestra una traza del cliente.\n");
+    printf("\t- [-h]]: Muestra de ayuda para ver como usar el programa.\n");
 }
 
 //Metodo para comprobar los parametros de entrada
@@ -169,7 +196,6 @@ void checkArguments(int argc, char *argv[])
     int i = 0;
     for (i = 1; i < argc; i++)
     {
-        printf("Estoy comprobando argumentos(%d).\n", i);
         if (i == 1)
         {
             if ((inet_aton(argv[i], &serverIPAddress)) <= 0)
@@ -202,37 +228,6 @@ void checkArguments(int argc, char *argv[])
             verboseMode = 1;
         }
     }
-}
-
-//Metodo para imprimir un mensaje de error y terminar el programa.
-void error(char message[])
-{
-    perror(message);
-    exit(EXIT_FAILURE);
-}
-
-//Metodo para comprobar el cierre del socket y terminar el programa.
-void closeSocket(int result)
-{
-    //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
-    int closeResult = close(result);
-    if (closeResult < 0)
-    {
-        error("Error al cerrar el socket\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
-//Metodo para mostrar ayuda al usuario sobre el uso del comando
-void help()
-{
-    printf("El uso del programa es el siguiente:\n");
-    printf("Formato:nombreFicheroCompilado IP {-r|-w} archivo [-v][-h].\n");
-    printf("\t- IP: Direccion IP del servidor.\n");
-    printf("\t- {-r|-w}}: Modo de consulta hacia el servidor. Lectura o escritura, respectivamente\n");
-    printf("\t- archivo: Nombre del archivo con el que trabajaremos.\n");
-    printf("\t- [-v]: Modo verbose en el que se muestra una traza del cliente.\n");
-    printf("\t- [-h]]: Muestra de ayuda para ver como usar el programa.\n");
 }
 
 /*Este metodo se encargara de imprimir el texto del modo verbose
@@ -278,16 +273,6 @@ void verboseText(int programPart, unsigned int auxPackage)
     }
 }
 
-void checkResult(int result, char message[])
-{
-    if (result < 0)
-    {
-        fclose(fichIn);
-        error(message);
-        closeSocket(socketResult);
-    }
-}
-
 /*
 Este metodo se encargara de la tarea de inicializar los paquetes
 de la aplicacion y formatearlos correctamente para que los datos
@@ -303,7 +288,6 @@ unsigned char *initPackage()
     correspondientes al tamanio maximo de cada subconjunto del paquete total
     que se va a solicitar al servidor, y que todos esos espacios sean del mismo tipo.
     */
-    //resultPackage = allocateMemory(PACKAGEPART);
     if ((resultPackage = (unsigned char *)calloc(512, sizeof(unsigned char))) == 0)
     {
         error("Fallo al reservar memoria.\n");
@@ -338,43 +322,6 @@ unsigned char *initPackage()
     resultPackage[pckgSize] = 0;
     pckgSize++;
     return resultPackage;
-}
-
-/*
-Este metodo se encargara de la creacion de los paquetes de datos.
-*/
-unsigned char *packageType(int blockNumber, int type)
-{
-    pckgSize = 0;
-    unsigned char *newPackage;
-
-    newPackage = allocateMemory(4);
-    if (newPackage == 0)
-    {
-        error("Fallo al crear el paquete de datos.\n");
-    }
-
-    switch (type)
-    {
-    //Codigo 3 para paquete de datos
-    case 0:
-        newPackage[1] = 3;
-        break;
-    //Codigo 4 para ACK
-    case 1:
-        newPackage[1] = 4;
-        break;
-    }
-
-    pckgSize = 2;
-
-    //Desplazamos las posiciones de los paquetes, siguiendo las indicaciones dadas en clase.
-    newPackage[2] = blockNumber / 256;
-    newPackage[3] = blockNumber % 256;
-
-    pckgSize += 2;
-
-    return newPackage;
 }
 
 /*Metodo que se encargara de comprobar los tipos de paquete que
@@ -467,63 +414,57 @@ void readMode(int socketResult)
 {
     //Vamos a mandar datos al servidor
     int sendResult, recvResult;
-    unsigned char *out;
-    unsigned char *in;
+    unsigned char *outPackage;
 
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = serverPort;
     serverAddr.sin_addr = serverIPAddress;
 
-    out = initPackage();
+    outPackage = initPackage();
 
     //Si el modo verbose esta activado -> informacion.
     if (verboseMode)
     {
         verboseText(1, 0);
+        fflush(stdout);
     }
 
     //Enviamos los datos y comprobamos si da fallo. En caso afirmativo, el programa termina.
-    sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+    sendResult = sendto(socketResult, outPackage, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
     if (sendResult < 0)
     {
         error("Error al enviar datos al servidor\n");
         closeSocket(socketResult);
     }
 
-    printf("Alojamos memoria para el paquete.\n");
-    if ((in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
+    unsigned char *inPackage;
+    if ((inPackage = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
     {
         error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
     }
 
-    printf("Memoria alojada.\n");
     socklen_t addressLength = sizeof(serverAddr);
     int blockNumber = 0;
     //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
     do
     {
-        printf("Comenzamos el bucle do-while.\n");
-        recvResult = recvfrom(socketResult, in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
+        recvResult = recvfrom(socketResult, inPackage, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
         if (recvResult < 0)
         {
             fclose(fichOut);
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
-        printf("Recibimos datos.\n");
         //checkResult(recvResult, "Error al recibir datos del servidor\n");
-        if (out != 0)
+        if (outPackage != 0)
         {
-            free(out);
+            free(outPackage);
         }
-        printf("Pasamos el null del paquete de salida.\n");
-        printf("Tamanio del paquete de entrada: %lu.\n", sizeof(in));
-        printf("Comprobamos paquete de entrada.\n");
-        out = checkPckg(recvResult, in, blockNumber);
-        printf("Hemos comprobado el paquete.\n");
-        sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-        printf("Comprobamos resultado.\n");
+
+        outPackage = checkPckg(recvResult, inPackage, blockNumber);
+        sendResult = sendto(socketResult, outPackage, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+
         checkResult(sendResult, "Error al enviar datos al servidor.\n");
         blockNumber++;
     } while (recvResult - 4 == PACKAGEPART);
@@ -532,77 +473,4 @@ void readMode(int socketResult)
         verboseText(5, 0);
     }
     fclose(fichOut);
-}
-
-//Metodo para activar el modo escritura del cliente
-void writeMode(int socketResult)
-{
-//Vamos a mandar datos al servidor
-    int sendResult, recvResult;
-    unsigned char *out;
-    unsigned char *in;
-
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = serverPort;
-    serverAddr.sin_addr = serverIPAddress;
-
-    out = initPackage();
-
-    //Si el modo verbose esta activado -> informacion.
-    if (verboseMode)
-    {
-        verboseText(9, 0);
-        fflush(stdout);
-    }
-
-    //Enviamos los datos y comprobamos si da fallo. En caso afirmativo, el programa termina.
-    sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-    if (sendResult < 0)
-    {
-        error("Error al enviar datos al servidor\n");
-        closeSocket(socketResult);
-    }
-
-    printf("Alojamos memoria para el paquete.\n");
-    if ((in = (unsigned char *)calloc(516, sizeof(unsigned char))) == 0)
-    {
-        error("Reserva en la memoria fallida para los datos provinientes del servidor.\n");
-    }
-
-    printf("Memoria alojada.\n");
-    socklen_t addressLength = sizeof(serverAddr);
-    int blockNumber = 0;
-    //Comprobamos que se enlaza correctamente, cerrando la conexion en caso contrario.
-    do
-    {
-        printf("Comenzamos el bucle do-while.\n");
-        recvResult = recvfrom(socketResult, in, 516, 0, (struct sockaddr *)&serverAddr, &addressLength);
-        if (recvResult < 0)
-        {
-            fclose(fichIn);
-            error("Error al recibir datos del servidor.\n");
-            closeSocket(socketResult);
-        }
-        printf("Recibimos datos.\n");
-        //checkResult(recvResult, "Error al recibir datos del servidor\n");
-        if (out != 0)
-        {
-            free(out);
-        }
-        printf("Pasamos el null del paquete de salida.\n");
-        printf("Tamanio del paquete de entrada: %lu.\n", sizeof(in));
-        printf("Comprobamos paquete de entrada.\n");
-        out = checkPckg(0, in, blockNumber);
-        printf("Hemos comprobado el paquete.\n");
-        sendResult = sendto(socketResult, out, pckgSize, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-        printf("Comprobamos resultado.\n");
-        checkResult(sendResult, "Error al enviar datos al servidor.\n");
-        blockNumber++;
-    } while (recvResult - 4 == PACKAGEPART);
-    if (verboseMode)
-    {
-        verboseText(5, 0);
-    }
-    fclose(fichIn);
 }
