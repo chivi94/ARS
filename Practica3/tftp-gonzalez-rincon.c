@@ -335,7 +335,7 @@ unsigned char *packageType(int blockNumber, int type)
         break;
     }
     if (newPackage == 0)
-    {
+    {}
         error("Fallo al crear el paquete de datos.\n");
     }
 
