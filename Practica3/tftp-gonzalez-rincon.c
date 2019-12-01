@@ -505,6 +505,7 @@ void readMode(int socketResult)
             error("Error al recibir datos del servidor.\n");
             closeSocket(socketResult);
         }
+        printf("Recibimos datos.\n");
         //checkResult(recvResult, "Error al recibir datos del servidor\n");
         if (out != 0)
         {
