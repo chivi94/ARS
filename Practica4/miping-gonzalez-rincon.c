@@ -25,7 +25,12 @@ Maximo numero de argumentos:
     - Ayuda para el usuario.
 */
 #define MAXARGS 3
+#define FORMAT "-> "
 #define FIRSTSEQUENCE 0
+#define ICMPHEADERTYPE 8
+#define ICMPHEADERCODE 0
+#define ICMPHEADERINITCHECKSUM 0
+#define PAYLOADSIZE 64
 
 //Cabeceras de funciones
 void error(char message[]);
@@ -34,11 +39,13 @@ void checkArguments(int argc, char *argv[]);
 void closeSocket(int result);
 ECHORequest generateICMPRequest(int sequenceNumber);
 unsigned short int calcChecksum(ECHORequest request);
-void showResponse(unsigned char icmpHeaderType);
+void checkResponseType(ECHOResponse response);
+void printResponseError(char message[], unsigned char type, unsigned char code);
 
 //Variables globales
 struct in_addr serverIPAddress;
 int verboseMode = 0;
+int socketResult;
 
 int main(int argc, char *argv[])
 {
@@ -47,7 +54,7 @@ int main(int argc, char *argv[])
 
     //Si todo va correcto, continuamos con la ejecucion normal del programa
     //Establecemos la conexion con el socket
-    int socketResult;
+    
     if ((socketResult = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0)
     {
         error("Error al crear el socket.\n");
@@ -65,22 +72,37 @@ int main(int argc, char *argv[])
     //Mandamos la peticion
     sendResult = sendto(socketResult, &request, sizeof(request), 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 
-    if(sendResult < 0){
+    if (sendResult < 0)
+    {
         error("Error al enviar datos al servidor.\n");
         close(socketResult);
     }
+    printf("Paquete ICMP enviado a %s\n.", inet_ntoa(serverIPAddress));
 
     //Recibimos la respuesta del servidor
     ECHOResponse response;
     socklen_t addressLength = sizeof(serverAddr);
     int rcvResult;
     //¿92 sera el tamanio en bytes de la respuesta?
-    rcvResult = recvfrom(socketResult, &response, 92, 0, (struct sockaddr *)&serverAddr, addressLength);
-    if(rcvResult < 0){
+    rcvResult = recvfrom(socketResult, &response, 92, 0, (struct sockaddr *)&serverAddr, &addressLength);
+    if (rcvResult < 0)
+    {
         error("Error al recibir datos del servidor.\n");
         closeSocket(socketResult);
     }
+    //Mostramos la IP de origen de la respuesta
+    printf("Respuesta recibida desde %s\n.", inet_ntoa(response.ipHeader.iaSrc));
 
+    if (verboseMode)
+    {
+        printf(FORMAT "Tamaño de la respuesta: %d\n.", rcvResult);
+        printf(FORMAT "Cadena recibida: %s\n.", response.payload);
+        printf(FORMAT "Identifier (pid): %d\n.", response.ID);
+        printf(FORMAT "TTL: %d\n.", response.ipHeader.TTL);
+    }
+
+    checkResponseType(response);
+    closeSocket(socketResult);
     exit(EXIT_SUCCESS);
 }
 
@@ -156,13 +178,96 @@ ECHORequest generateICMPRequest(int sequenceNumber)
 {
     ECHORequest result;
 
+    result.icmpHeader.Type = ICMPHEADERTYPE;
+    result.icmpHeader.Code = ICMPHEADERCODE;
+    result.icmpHeader.Checksum = ICMPHEADERINITCHECKSUM;
+    result.ID = getpid();
+    result.SeqNumber = sequenceNumber;
+
+    if (verboseMode)
+    {
+        printf(FORMAT "Generando cabecera ICPM.\n");
+        printf(FORMAT "Type: %d\n", result.icmpHeader.Type);
+        printf(FORMAT "Code: %d\n", result.icmpHeader.Code);
+        printf(FORMAT "Identifier (pid): %d\n", result.ID);
+        printf(FORMAT "Seq. number: %d\n", result.SeqNumber);
+    }
+
+    //Como se comento en uno de los laboratorios, vamos a generar una cadena aleatoria, que no da informacion, mas que cargar el payload de la request.
+    int printResult;
+    printResult = snprintf(result.payload, PAYLOADSIZE, "%s", "gpBPox8Rn3Ib0ukTlFYKnEVMKdFjogzAcWIfgWwPX5SpmyVT6QG9UMnr6bMxNbY");
+
+    if (printResult < 0)
+    {
+        error("Error al formatear el payload.\n");
+    }
+
+    result.icmpHeader.Checksum = calcChecksum(result);
+    if (verboseMode)
+    {
+        printf(FORMAT "Cadena a enviar: %s\n", result.payload);
+        printf(FORMAT "Checksum: 0x%x\n", result.icmpHeader.Type);
+        printf(FORMAT "Tamaño total del paquete: %d\n", 9 + printResult);
+    }
+
     return result;
 }
 
-unsigned short int calcChecksum(ECHORequest request){
-    return 0;
+unsigned short int calcChecksum(ECHORequest request)
+{
+    int numShorts = sizeof(request) / 2;
+    unsigned short int *puntero = (unsigned short int *)&request;
+    int contador;
+    unsigned int acumulador = 0;
+    for (contador = 0; contador < numShorts; contador++)
+    {
+        acumulador = acumulador + (unsigned int)puntero[contador];
+    }
+    acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
+    acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
+    return ~acumulador;
 }
 
-void showResponse(unsigned char icmpHeaderType){
+/*
+Este metodo checkeara el tipo de la respuesta proporcionada por el servidor
+para poder identificar los posibles errores que surgen en esta.
+*/
+void checkResponseType(ECHOResponse response)
+{
+    unsigned char type = response.icmpHeader.Type;
+    unsigned char code = response.icmpHeader.Code;
+    switch (type)
+    {
+    //Echo reply
+    case 0:
+        printResponseError("Descripción de la respuesta: respuesta correcta (type %d, code %d).\n", type, code);
+        break;
+    case 3:
+        switch (code)
+        {
+        case 0:
+            printResponseError("Descripción de la respuesta: Destination network unreachable (type %d, code %d)\n", type, code);
+            break;
+        default:
+            printResponseError("Descripción de la respuesta: Destination unreachable (type %d, code %d)\n", type, code);
+        }
+        closeSocket(socketResult);
+        exit(EXIT_FAILURE);
+        break;
+    case 11:
+        printResponseError("Descripción de la respuesta: Time exceed (type %d, code %d)\n", type, code);
+        closeSocket(socketResult);
+        exit(EXIT_FAILURE);
+        break;
+    case 12:
+        printResponseError("Descripción de la respuesta: Parameter problem (type %d, code %d)\n", type, code);
+        closeSocket(socketResult);
+        exit(EXIT_FAILURE);
+        break;
+    }
+}
 
+void printResponseError(char message[], unsigned char type, unsigned char code)
+{
+    printf(message, type, code);
 }
