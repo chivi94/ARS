@@ -40,7 +40,7 @@ void closeSocket(int result);
 ECHORequest generateICMPRequest(int sequenceNumber);
 unsigned short int calcChecksum(ECHORequest request);
 void checkResponseType(ECHOResponse response);
-void printResponseError(char message[], unsigned char type, unsigned char code);
+void printResponseType(char message[], unsigned char type, unsigned char code);
 
 //Variables globales
 struct in_addr serverIPAddress;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 
     //Si todo va correcto, continuamos con la ejecucion normal del programa
     //Establecemos la conexion con el socket
-    
+
     if ((socketResult = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0)
     {
         error("Error al crear el socket.\n");
@@ -213,6 +213,9 @@ ECHORequest generateICMPRequest(int sequenceNumber)
     return result;
 }
 
+/*
+Metodo para calcular el checksum del paquete. Se usara para comprobar que el envio ha sido correcto
+*/
 unsigned short int calcChecksum(ECHORequest request)
 {
     int numShorts = sizeof(request) / 2;
@@ -225,11 +228,11 @@ unsigned short int calcChecksum(ECHORequest request)
     }
     acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
     acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
-    return ~acumulador;
+    return acumulador;
 }
 
 /*
-Este metodo checkeara el tipo de la respuesta proporcionada por el servidor
+Metodo para comprobar el tipo de la respuesta proporcionada por el servidor
 para poder identificar los posibles errores que surgen en esta.
 */
 void checkResponseType(ECHOResponse response)
@@ -240,34 +243,52 @@ void checkResponseType(ECHOResponse response)
     {
     //Echo reply
     case 0:
-        printResponseError("Descripción de la respuesta: respuesta correcta (type %d, code %d).\n", type, code);
+        printResponseType("Descripción de la respuesta: respuesta correcta (type %d, code %d).\n", type, code);
         break;
+    //Destination Unreachable
     case 3:
         switch (code)
         {
+        //Net Unreachable
         case 0:
-            printResponseError("Descripción de la respuesta: Destination network unreachable (type %d, code %d)\n", type, code);
+            printResponseType("Descripción de la respuesta: Destination Network Unreachable (type %d, code %d)\n", type, code);
             break;
+            //Host Unreachable
+        case 1:
+            printResponseType("Descripción de la respuesta: Destination Host Unreachable (type %d, code %d)\n", type, code);
+            break;
+        //Destination Network Unknown
+        case 6:
+            printResponseType("Descripción de la respuesta: Destination Network Unknown (type %d, code %d)\n", type, code);
+            break;
+        //Destination Host Unknown
+        case 7:
+            printResponseType("Descripción de la respuesta: Destination Host Unknown (type %d, code %d)\n", type, code);
+            break;
+        //Caso general
         default:
-            printResponseError("Descripción de la respuesta: Destination unreachable (type %d, code %d)\n", type, code);
+            printResponseType("Descripción de la respuesta: Destination unreachable (type %d, code %d)\n", type, code);
         }
         closeSocket(socketResult);
         exit(EXIT_FAILURE);
         break;
     case 11:
-        printResponseError("Descripción de la respuesta: Time exceed (type %d, code %d)\n", type, code);
+        printResponseType("Descripción de la respuesta: Time exceed (type %d, code %d)\n", type, code);
         closeSocket(socketResult);
         exit(EXIT_FAILURE);
         break;
     case 12:
-        printResponseError("Descripción de la respuesta: Parameter problem (type %d, code %d)\n", type, code);
+        printResponseType("Descripción de la respuesta: Parameter problem (type %d, code %d)\n", type, code);
         closeSocket(socketResult);
         exit(EXIT_FAILURE);
         break;
     }
 }
 
-void printResponseError(char message[], unsigned char type, unsigned char code)
+/*
+Metodo para imprimir el mensaje de respuesta, junto con su tipo y su codigo. 
+*/
+void printResponseType(char message[], unsigned char type, unsigned char code)
 {
     printf(message, type, code);
 }
