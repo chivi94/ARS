@@ -228,7 +228,7 @@ unsigned short int calcChecksum(ECHORequest request)
     }
     acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
     acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
-    return acumulador;
+    return ~acumulador;
 }
 
 /*
