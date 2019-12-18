@@ -106,12 +106,18 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
+/*
+Metodo para mostrar mensaje de error y parar el programa.
+*/
 void error(char message[])
 {
     perror(message);
     exit(EXIT_FAILURE);
 }
 
+/*
+Metodo para mostrar ayuda de como usar el programa.
+*/
 void help()
 {
     printf("El uso del programa es el siguiente:\n");
@@ -121,6 +127,9 @@ void help()
     printf("- [-h]: Parametro opcional que muestra la ayuda de como usar el comando.\n");
 }
 
+/*
+Metodo para comprobar los argumentos de entrada
+*/
 void checkArguments(int argc, char *argv[])
 {
     if (argc <= MINARGS)
@@ -162,7 +171,9 @@ void checkArguments(int argc, char *argv[])
     }
 }
 
-//Metodo para comprobar el cierre del socket y terminar el programa.
+/*
+Metodo para comprobar el cierre del socket y terminar el programa.
+*/
 void closeSocket(int result)
 {
     //Comprobamos si al cerrar el socket algo va mal, notificando al usuario de ser asi.
@@ -174,6 +185,9 @@ void closeSocket(int result)
     }
 }
 
+/*
+Metodo para generar la peticion ICMP que se mandara a la direccion IP solicitada.
+*/
 ECHORequest generateICMPRequest(int sequenceNumber)
 {
     ECHORequest result;
@@ -218,17 +232,20 @@ Metodo para calcular el checksum del paquete. Se usara para comprobar que el env
 */
 unsigned short int calcChecksum(ECHORequest request)
 {
-    int numShorts = sizeof(request) / 2;
-    unsigned short int *puntero = (unsigned short int *)&request;
-    int contador;
-    unsigned int acumulador = 0;
-    for (contador = 0; contador < numShorts; contador++)
+    int halfSizeofRequest;
+    unsigned short int *vector;
+    int i;
+    unsigned int result = 0;
+
+    halfSizeofRequest = sizeof(request) / 2;
+    vector = (unsigned short int *)&request;
+    for (i = 0; i < halfSizeofRequest; i++)
     {
-        acumulador = acumulador + (unsigned int)puntero[contador];
+        result = result + (unsigned int)vector[i];
     }
-    acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
-    acumulador = (acumulador >> 16) + (acumulador & 0x0000ffff);
-    return ~acumulador;
+    result = (result >> 16) + (result & 0x0000ffff);
+    result = (result >> 16) + (result & 0x0000ffff);
+    return ~result;
 }
 
 /*
