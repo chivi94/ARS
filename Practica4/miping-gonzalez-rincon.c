@@ -31,6 +31,7 @@ Maximo numero de argumentos:
 #define ICMPHEADERCODE 0
 #define ICMPHEADERINITCHECKSUM 0
 #define PAYLOADSIZE 64
+#define RESPONSESIZE 92
 
 //Cabeceras de funciones
 void error(char message[]);
@@ -83,8 +84,8 @@ int main(int argc, char *argv[])
     ECHOResponse response;
     socklen_t addressLength = sizeof(serverAddr);
     int rcvResult;
-    //¿92 sera el tamanio en bytes de la respuesta?
-    rcvResult = recvfrom(socketResult, &response, 92, 0, (struct sockaddr *)&serverAddr, &addressLength);
+   
+    rcvResult = recvfrom(socketResult, &response, RESPONSESIZE, 0, (struct sockaddr *)&serverAddr, &addressLength);
     if (rcvResult < 0)
     {
         error("Error al recibir datos del servidor.\n");
