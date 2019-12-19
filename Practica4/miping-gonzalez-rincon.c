@@ -32,6 +32,8 @@ Maximo numero de argumentos:
 #define ICMPHEADERINITCHECKSUM 0
 #define PAYLOADSIZE 64
 #define RESPONSESIZE 92
+#define OFFSET 16
+#define MASK 0x0000ffff
 
 //Cabeceras de funciones
 void error(char message[]);
@@ -244,8 +246,8 @@ unsigned short int calcChecksum(ECHORequest request)
     {
         result = result + (unsigned int)vector[i];
     }
-    result = (result >> 16) + (result & 0x0000ffff);
-    result = (result >> 16) + (result & 0x0000ffff);
+    result = (result >> OFFSET) + (result & MASK);
+    result = (result >> OFFSET) + (result & MASK);
     return ~result;
 }
 
